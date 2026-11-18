@@ -7,6 +7,8 @@ super chats...), and while the stream is **still live** cuts a ready-to-post
 
 No API keys, no accounts, no subscriptions. Everything runs on your computer.
 
+![The YT Live Clipper web page: paste a link, press Start clipping](docs/screenshot-home.png)
+
 ```
 stream ──► streamlink ──► ffmpeg (rolling buffer, 4s segments, no re-encode)
                                          │
@@ -52,6 +54,21 @@ A page opens in your browser at `http://127.0.0.1:8765`. It runs only on your ow
    **Open clips folder**. **Stop** finishes the clip in progress and keeps everything made so far.
 
 Keep the black window open while clipping; closing it quits. Prefer typing commands? Everything below works too.
+
+**While it runs**, the chat meter fills in with real chat activity and the bars turn pink where chat spiked.
+Each spike becomes a clip:
+
+![Clipping in progress: two chat spikes shown in pink on the live chat meter](docs/screenshot-clipping.png)
+
+**Your clips** appear on the same page, ready to play or download:
+
+![Finished clips shown as vertical phone frames with titles and hashtags](docs/screenshot-clips.png)
+
+It works on small screens too:
+
+<img src="docs/screenshot-phone.png" alt="The web page on a phone-sized screen" width="320">
+
+*Screenshots use the built-in Test run (a fake stream), so no real streamer's video is shown.*
 
 ## Install (one time)
 

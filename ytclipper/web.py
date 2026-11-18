@@ -502,7 +502,7 @@ const rest = Array.from({length: N}, (_, i) => {
   const peak = Math.exp(-((i - N * 0.72) ** 2) / 3.2) * 80;
   return Math.max(6, base + peak);
 });
-let live = [];            // [{v, spike}]
+let live = [], marked = 0;  // [{v, thr, spike}]; bars before `marked` already judged
 function draw() {
   const data = live.length ? live.slice(-N) : null;
   const max = data ? Math.max(10, ...data.map(d => d.v)) : 100;
@@ -537,7 +537,7 @@ $("start").onclick = async () => {
     top: $("top").value, captions: $("caps").checked, horizontal: $("horiz").checked,
     lang: $("lang").value, model: $("model").value});
   if (r.error) { $("err").textContent = r.error; return; }
-  seq = 0; spikes = 0; ready = 0; live = []; mine = true; $("log").textContent = ""; draw();
+  seq = 0; spikes = 0; ready = 0; live = []; marked = 0; mine = true; $("log").textContent = ""; draw();
   poll();
 };
 $("stop").onclick = () => post("/api/stop");
@@ -553,8 +553,17 @@ function addLines(lines) {
   for (const l of lines) {
     const span = document.createElement("span");
     const bin = l.match(/bin_score=([\d.]+)/);
-    if (bin && (running || mine)) live.push({v: +bin[1], spike: false});  // not an old run's log
-    if (l.includes("SPIKE!")) { span.className = "s"; spikes++; if (live.length) live[live.length - 1].spike = true; }
+    if (bin && (running || mine)) {  // not an old run's log
+      const thr = l.match(/threshold=([\d.]+)/);
+      live.push({v: +bin[1], thr: thr ? +thr[1] : Infinity, spike: false});
+    }
+    if (l.includes("SPIKE!")) {  // confirmed a bit after the fact: mark the bars that crossed the line
+      span.className = "s"; spikes++;
+      const recent = live.slice(marked);
+      const hot = recent.filter(d => d.v >= d.thr);
+      (hot.length ? hot : recent.length ? [recent.reduce((a, b) => b.v > a.v ? b : a)] : []).forEach(d => d.spike = true);
+      marked = live.length;
+    }
     const found = l.match(/found (\d+) spike/);  // replay mode reports all spikes at once
     if (found) { span.className = "s"; spikes = +found[1]; }
     if (l.includes("CLIP READY")) { span.className = "c"; ready++; }
@@ -571,6 +580,9 @@ async function poll() {
   try {
     const s = await fetch("/api/status?since=" + seq).then(r => r.json());
     const was = running; running = s.running;
+    if (running && !was && !mine) {  // page opened while a run is going: show its mode
+      const r = document.querySelector(`input[name=mode][value=${s.mode}]`); if (r) { r.checked = true; syncMode(); }
+    }
     addLines(s.lines); seq = s.seq;
     $("dot").className = "dot" + (running ? " on" : "");
     $("state").textContent = running ? (s.stopping ? "Stopping" : "Clipping") : (seq ? "Finished" : "Ready");

@@ -38,7 +38,9 @@
   Alignment looked right: the streamer's "oh no" lands just before chat's "NOOOO / F" spike.
   Fixed: replay errors (e.g. chat replay turned off, as on NASA streams) now print one clear
   line instead of a traceback; the HF download logger is `httpx2` (now silenced too).
-- Still untested: Windows scripts; live-mode alignment on a stream with real speech.
+- Published at https://github.com/jatinsinghal9716/yt-live-clipper (public, MIT).
+- 2026-11-18: added the `ytclip web` page; tested in a browser (test run, ended stream, Stop, playback).
+- Still untested: Windows scripts and the web page on Windows; live-mode alignment on a stream with real speech.
 
 ## Next steps (original handoff)
 1. Install: Windows `install_windows.bat` (or `python -m venv .venv`, activate it,
@@ -69,6 +71,7 @@
 | `replay.py` | Ended streams: downloads only the chat replay, then `detect_offline`, ranks the top N, then `yt-dlp --download-sections "*s-e" --force-keyframes-at-cuts` downloads just those seconds (or cuts from `--video-file`) |
 | `report.py` | `clips/index.html` gallery (light/dark) |
 | `demo.py` | Builds a synthetic stream (testsrc2 + drawtext + optional flite speech) and JSONL chat |
+| `web.py` | `ytclip web`: stdlib local page on 127.0.0.1:8765 (Host-header + JSON-only POST guards). Runs one `ytclip` subprocess, streams its log, lists/serves clips (with Range for Safari). Stop = touches a `--stop-file` that live/demo/replay poll (works on Windows, unlike Ctrl+C) |
 
 Output: `clips_output/session-<time>/clips/NNN_HHMMSS/{clip.mp4, raw.mp4, captions.srt, captions.ass, thumb.jpg, meta.json}` plus `clips/index.html`.
 
@@ -91,6 +94,7 @@ Output: `clips_output/session-<time>/clips/NNN_HHMMSS/{clip.mp4, raw.mp4, captio
 
 ## Useful commands
 ```
+ytclip web            # the page START_CLIPPING.bat / .command open
 ytclip doctor
 ytclip demo [--no-captions]
 ytclip live "<url>" [--wait] [--sensitivity low|medium|high] [--whisper-model tiny|base|small]
@@ -102,4 +106,3 @@ pytest -q
 ## Possible future improvements (not requested yet)
 - Auto-upload to YouTube Shorts (YouTube Data API is free but needs OAuth setup)
 - Audio-loudness spikes as a second signal next to chat
-- A small local web UI instead of the command line

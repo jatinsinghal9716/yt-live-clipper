@@ -31,6 +31,6 @@ pip install -q --upgrade pip
 pip install -q -e .
 ytclip doctor
 echo
-echo "Done! Start clipping with:"
-echo "  source .venv/bin/activate"
-echo "  ytclip live \"https://www.youtube.com/@ChannelName/live\" --wait"
+echo "Done! Double-click START_CLIPPING.command (Mac) or run:"
+echo "  source .venv/bin/activate && ytclip web"
+echo "A page opens in your browser. Try the 'Test run' option first."

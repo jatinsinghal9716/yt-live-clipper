@@ -37,6 +37,7 @@ class LiveOptions:
     max_clips: int = 0                # 0 = unlimited
     duration: float = 0.0             # stop after N seconds (0 = until stream ends)
     wait: bool = False                # wait for a scheduled stream to go live
+    stop_file: str | None = None      # stop gracefully once this file exists (web page Stop button)
     # demo / testing
     input_file: str | None = None
     chat_file: str | None = None
@@ -107,6 +108,9 @@ class LiveClipper:
                     break
                 if o.duration and now - started >= o.duration:
                     reason = "duration reached"
+                    break
+                if o.stop_file and Path(o.stop_file).exists():
+                    reason = "Stop pressed"
                     break
                 if o.max_clips and len(self.clips) + len(self.pending_starts) >= o.max_clips:
                     reason = "max clips reached"

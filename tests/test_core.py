@@ -217,3 +217,36 @@ def test_chat_text_strips_terminal_escapes():
     from ytclipper.chat import ChatMessage
     m = ChatMessage(t=0, author="a\x1b]0;x\x07", text="hi\x1b[2J 💀\n")
     assert m.text == "hi[2J 💀" and "\x1b" not in m.author
+
+
+def test_web_guards(tmp_path):
+    import http.client
+    import threading
+    from http.server import ThreadingHTTPServer
+
+    from ytclipper.web import Job, make_handler
+
+    (tmp_path / "a.txt").write_text("hello")
+    srv = ThreadingHTTPServer(("127.0.0.1", 0), None)
+    port = srv.server_address[1]
+    srv.RequestHandlerClass = make_handler(Job(), tmp_path, port)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+
+    def req(method, path, host=f"127.0.0.1:{port}", body=None, ctype="application/json", rng=None):
+        c = http.client.HTTPConnection("127.0.0.1", port)
+        h = {"Host": host, "Content-Type": ctype}
+        if rng:
+            h["Range"] = rng
+        c.request(method, path, body=body, headers=h)
+        r = c.getresponse()
+        return r.status, r.read()
+
+    try:
+        assert req("GET", "/")[0] == 200
+        assert req("GET", "/", host="evil.example:80")[0] == 403          # DNS rebinding
+        assert req("GET", "/files/../test_core.py")[0] == 404             # path traversal
+        assert req("GET", "/files/a.txt", rng="bytes=1-3") == (206, b"ell")
+        assert req("POST", "/api/start", body="mode=demo", ctype="application/x-www-form-urlencoded")[0] == 415
+        assert req("POST", "/api/start", body='{"mode":"live","url":"file:///etc"}')[0] == 400
+    finally:
+        srv.shutdown()

@@ -40,6 +40,19 @@ cd yt-live-clipper
 Then use the one-click installer: double-click **`install_windows.bat`** on Windows, or run
 `bash install_mac_linux.sh` on Mac/Linux. The manual steps are below.
 
+## Easiest way to use it: the web page
+
+After installing, double-click **`START_CLIPPING.bat`** (Windows) or **`START_CLIPPING.command`**
+(Mac; the first time, right-click it → **Open**). On Linux run `ytclip web`.
+
+A page opens in your browser at `http://127.0.0.1:8765`. It runs only on your own computer.
+1. Pick **Live stream**, **Ended stream** or **Test run** (try Test run first).
+2. Paste the YouTube link and press **Start clipping**.
+3. Clips appear on the page as they're made. Play them there, download them, or press
+   **Open clips folder**. **Stop** finishes the clip in progress and keeps everything made so far.
+
+Keep the black window open while clipping; closing it quits. Prefer typing commands? Everything below works too.
+
 ## Install (one time)
 
 You need **Python 3.9-3.13** (faster-whisper has no wheels for newer Pythons yet) and **FFmpeg with libass**.

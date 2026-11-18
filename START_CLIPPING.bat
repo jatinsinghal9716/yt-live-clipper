@@ -7,12 +7,7 @@ if not exist .venv\Scripts\ytclip.exe (
 )
 call .venv\Scripts\activate.bat
 echo === YT Live Clipper ===
-echo Paste the YouTube live link (e.g. https://www.youtube.com/@ChannelName/live)
-set /p URL=Link:
-echo.
-echo Clipping... leave this window open. Press Ctrl+C to stop.
-echo Clips appear in the clips_output folder (open clips\index.html to watch them).
-echo.
-ytclip live "%URL%" --wait
-start "" "%~dp0clips_output"
+echo The clipper page opens in your browser. Keep this window open while clipping.
+echo Close this window to quit.
+ytclip web
 pause

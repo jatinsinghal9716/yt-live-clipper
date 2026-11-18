@@ -33,6 +33,7 @@ def _common(p: argparse.ArgumentParser) -> None:
     d.add_argument("--bin", type=float, default=10.0, help="chat window seconds (default 10)")
     d.add_argument("--min-score", type=float, default=None, help="override minimum score per window")
     d.add_argument("--cookies", default=None, help="cookies.txt (only for members-only/age-gated streams)")
+    p.add_argument("--stop-file", default=None, help=argparse.SUPPRESS)  # used by `ytclip web`
 
 
 def _configs(a) -> tuple[DetectorConfig, ClipConfig]:
@@ -87,6 +88,11 @@ def build_parser() -> argparse.ArgumentParser:
     _common(dm)
 
     sub.add_parser("doctor", help="check that ffmpeg & dependencies are installed")
+
+    wb = sub.add_parser("web", help="open the simple web page (paste a link, press Start)")
+    wb.add_argument("-o", "--out", default="clips_output", help="output folder (default: ./clips_output)")
+    wb.add_argument("--port", type=int, default=8765)
+    wb.add_argument("--no-browser", action="store_true", help="don't open the browser automatically")
     return ap
 
 
@@ -119,6 +125,10 @@ def main(argv: list[str] | None = None) -> int:
         logging.getLogger(noisy).setLevel(logging.ERROR)
     if a.cmd == "doctor":
         return doctor()
+    if a.cmd == "web":
+        from .web import serve
+
+        return serve(Path(a.out), a.port, open_browser=not a.no_browser)
     if not shutil.which("ffmpeg"):
         print("ffmpeg not found. Run `ytclip doctor` and see the README install steps.", file=sys.stderr)
         return 2
@@ -131,7 +141,8 @@ def main(argv: list[str] | None = None) -> int:
         opts = LiveOptions(url=a.url, out_dir=out, recorder=a.recorder, chat_backend=a.chat_backend,
                            quality=a.quality, cookies=a.cookies, buffer_minutes=a.buffer_minutes,
                            keep_recording=a.keep_recording, chat_delay=a.chat_delay,
-                           max_clips=a.max_clips, duration=a.duration, wait=a.wait)
+                           max_clips=a.max_clips, duration=a.duration, wait=a.wait,
+                           stop_file=a.stop_file)
         lc = LiveClipper(opts, det, clip)
         if sys.platform == "darwin" and shutil.which("caffeinate"):
             # an idle Mac sleeps mid-stream and the buffer/chat freeze (lid-close still sleeps it)
@@ -149,7 +160,8 @@ def main(argv: list[str] | None = None) -> int:
         try:
             res = run_replay(ReplayOptions(url=a.url, out_dir=out, top=a.top, cookies=a.cookies,
                                            quality=a.quality, video_file=a.video_file,
-                                           chat_file=a.chat_file, dry_run=a.dry_run), det, clip)
+                                           chat_file=a.chat_file, dry_run=a.dry_run,
+                                           stop_file=a.stop_file), det, clip)
         except RuntimeError as exc:  # expected failures (no chat replay, ...) - no traceback
             print(f"\nreplay failed: {exc}", file=sys.stderr)
             return 1
@@ -163,7 +175,7 @@ def main(argv: list[str] | None = None) -> int:
         video, chat = make_demo(out / "demo_assets")
         logging.info("replaying it as a 'live stream' for %ds (watch the SPIKE lines)", DEMO_SECONDS)
         opts = LiveOptions(url=None, out_dir=out, input_file=str(video), chat_file=str(chat),
-                           chat_grace=2.0)
+                           chat_grace=2.0, stop_file=a.stop_file)
         clips = LiveClipper(opts, det, clip).run()
         return 0 if clips else 1
     return 1

@@ -42,6 +42,6 @@ if errorlevel 1 (
 echo [4/4] Checking everything...
 ytclip doctor
 echo.
-echo Done! Double-click  START_CLIPPING.bat  to clip a live stream.
-echo (Optional test without YouTube:  .venv\Scripts\ytclip demo )
+echo Done! Double-click  START_CLIPPING.bat  - a page opens in your browser.
+echo (Try the 'Test run' option there first.)
 pause

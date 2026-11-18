@@ -36,6 +36,7 @@ class ReplayOptions:
     video_file: str | None = None     # use a local VOD instead of downloading sections
     chat_file: str | None = None      # use a local *.live_chat.json instead of downloading
     dry_run: bool = False
+    stop_file: str | None = None      # stop before the next clip once this file exists
 
 
 def download_chat(url: str, dest: Path, cookies: str | None) -> Path:
@@ -100,6 +101,9 @@ def run_replay(o: ReplayOptions, det_cfg: DetectorConfig, cfg: ClipConfig,
         transcriber = Transcriber(cfg.whisper_model, cfg.whisper_device, cfg.whisper_compute, cfg.language)
     results = []
     for i, m in enumerate(ranked, 1):
+        if o.stop_file and Path(o.stop_file).exists():
+            log.info("stopped - keeping the %d clip(s) already made", len(results))
+            break
         s, e = clip_window(m, cfg)
         s = max(0.0, s)
         clip_dir = clips_dir / f"{i:03d}_{_fmt_hms(m.start).replace(':', '-')}"

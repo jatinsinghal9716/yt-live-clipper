@@ -49,6 +49,9 @@
   (user's explicit choice); unaudited projects get them locked private by YouTube. `Uploader` thread, `--upload`,
   `ytclip connect-youtube`, web panel + per-clip editor dialog. Title = short spoken sentence or chat reaction
   + stream title + #Shorts. Tested with fakes only: a real sign-in/upload needs the owner's client_secret.json.
+- 2026-11-18: owner's Google project set up (client_secret.json, git-ignored, in app folder), channel
+  connected, OAuth app PUBLISHED (unverified) with homepage/privacy on GitHub Pages (docs/). Pending: real
+  upload test, OAuth verification (needs owned domain), YouTube API audit (uploads private until then).
 - Still untested: Windows scripts and the web page on Windows; live-mode alignment on a stream with real speech.
 
 ## Next steps (original handoff)

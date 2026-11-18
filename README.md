@@ -165,6 +165,8 @@ only those few seconds of video. It never downloads the full 8-hour VOD.
 - **Any language:** spikes come from how many people are typing, so Hindi, Hinglish, Tamil,
   Spanish, Korean... chats all work. Hype words and laughter (`भाई`, `kya baat`, `jajaja`, `ㅋㅋㅋ`, `草`,
   `wkwk`) in many languages add a small bonus.
+- **Emojis:** every emoji counts as a reaction (including skin tones, flags, combined ones like 🤦‍♂️
+  and YouTube's own channel emojis). Hype emojis like 😂💀🔥 and repeats like 😂😂😂 count more.
 - Neighbouring spike windows merge into one moment. Chat reacts **after** the event,
   so the clip keeps 30 s before the spike and 8 s after it.
 

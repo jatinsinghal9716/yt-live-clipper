@@ -260,3 +260,10 @@ def test_hype_words_many_languages():
         assert message_weight(plain) == 1.0, plain
     assert message_weight("क्लिप करो") >= 2.0
     assert _tokens("भाई क्या बात है!") == ["भाई", "क्या", "बात", "है"]  # matras stay inside words
+
+
+def test_emojis_any_kind():
+    from ytclipper.detector import _emoji_count, message_weight
+    assert [_emoji_count(t) for t in ["🫠", "👍🏽", "🤦‍♂️", "🇮🇳🇮🇳", ":face-purple-wide-eyes:", "12:30:45"]] == [1, 1, 1, 2, 1, 0]
+    assert message_weight("🫠") > message_weight("ok")          # any emoji is a reaction
+    assert message_weight("😂😂😂") > message_weight("😂") > message_weight("🫠")  # hype + repeats count more

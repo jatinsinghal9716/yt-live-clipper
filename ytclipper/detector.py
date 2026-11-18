@@ -56,7 +56,27 @@ HYPE_PHRASES = ("no way", "let's go", "lets go", "clip it", "clip that", "oh my 
 _LAUGH = re.compile(r"(?:ha){2,}|(?:ja){2,}|(?:he){3,}|(?:wk){2,}|(?:ха){2,}|(?:हा){2,}"
                     r"|k{4,}|w{3,}|5{3,}|6{3,}|ㅋ{2,}|ㅎ{2,}|草|哈{2,}|笑|ه{3,}|xd", re.I)
 _CLIP_WORDS = ("clip", "क्लिप", "クリップ", "클립", "剪辑", "klip")
-HYPE_EMOJI = set("💀😂🤣🔥😱😭😮🤯👏🙌💯😳🫨‼❗❓")
+HYPE_EMOJI = set("💀😂🤣🔥😱😭😮🤯👏🙌💯😳🫨‼❗❓😆😹🙀😲😯😵🥵🥶😤🤩👀🫡🎉🥳⚡💥🚀🏆👑🐐🤌🫢🤭☠😈"
+                 "🗿🤡😡🤬😨😰💔😍🥹")
+# YouTube channel/custom emojis arrive as text shortcuts, e.g. ":face-purple-wide-eyes:"
+_YT_EMOJI = re.compile(r":[a-z][a-z0-9_-]+:")  # not "12:30:45"
+
+
+def _emoji_count(text: str) -> int:
+    """Count emojis of any kind: every Unicode emoji (incl. skin tones / combined ones
+    count once) plus YouTube's own :shortcut: emojis."""
+    n = len(_YT_EMOJI.findall(text.lower()))
+    prev = ""
+    for c in _YT_EMOJI.sub(" ", text):
+        o, p, prev = ord(c), prev, c
+        if p == "\u200d" or (0x1F1E6 <= o <= 0x1F1FF and p and 0x1F1E6 <= ord(p) <= 0x1F1FF):
+            prev = ""  # 🤦‍♂️ (joined) and 🇮🇳 (flag pair) are one emoji each
+            continue
+        if (0x1F300 <= o <= 0x1FAFF or 0x2600 <= o <= 0x27BF or 0x1F000 <= o <= 0x1F2FF
+                or 0x2B00 <= o <= 0x2BFF or c in "‼⁉"):
+            if not 0x1F3FB <= o <= 0x1F3FF:  # skin-tone modifiers belong to the emoji before
+                n += 1
+    return n
 PER_AUTHOR_CAP = 3.0
 _STRETCH = re.compile(r"(.)\1{2,}")
 
@@ -83,6 +103,11 @@ def message_weight(text: str, paid: bool = False) -> float:
     if (words & HYPE_TOKENS or any(p in t for p in HYPE_PHRASES) or _LAUGH.search(t)
             or any(c in HYPE_EMOJI for c in text)):
         w += 0.5
+    emojis = _emoji_count(text)
+    if emojis and w == 1.0:  # any emoji is a reaction, even ones not in the hype list
+        w += 0.25
+    if emojis >= 3:  # "😂😂😂" / "🔥🔥🔥🔥" = a strong reaction
+        w += 0.25
     if any(k in t for k in _CLIP_WORDS):
         w += 1.0
     letters = [c for c in text if c.isalpha()]

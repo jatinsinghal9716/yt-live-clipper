@@ -298,17 +298,17 @@ PAGE = r"""<!doctype html>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>YT Live Clipper</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,300..800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400..800&display=swap" rel="stylesheet">
 <style>
 :root{
   --fog:#F2F3F7; --paper:#FFFFFF; --ink:#16133A; --mute:#6E6C88; --line:#E2E3EC;
   --hot:#FF2D6F; --hot-deep:#E0185A; --violet:#6A4BFF; --ok:#12A46B;
-  --font:"Bricolage Grotesque",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font:"Plus Jakarta Sans",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
 }
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html{background:var(--fog)}
-body{margin:0;color:var(--ink);font:400 16px/1.55 var(--font);font-optical-sizing:auto;
+body{margin:0;color:var(--ink);font:400 16px/1.6 var(--font);-webkit-font-smoothing:antialiased;
   background:
     radial-gradient(1100px 520px at 88% -8%, #E4DEFF 0%, transparent 60%),
     radial-gradient(900px 480px at -10% 18%, #FFE1EA 0%, transparent 55%),
@@ -326,8 +326,9 @@ main{max-width:1080px;margin:0 auto;padding:28px 24px 72px}
 .link-btn:hover{border-color:var(--ink)}
 
 /* hero */
-h1{font-weight:800;font-stretch:78%;font-size:clamp(46px,8.4vw,104px);line-height:.9;
-  letter-spacing:-.035em;margin:0;max-width:11ch}
+h1 .p{margin-left:-.09em}
+h1{font-weight:800;font-size:clamp(40px,7vw,84px);line-height:1;
+  letter-spacing:-.03em;margin:0;max-width:14ch;text-wrap:balance}
 .lede{font-size:clamp(17px,1.6vw,20px);color:var(--mute);max-width:46ch;margin:22px 0 0}
 
 /* the chat meter */
@@ -389,7 +390,7 @@ pre .s{color:#FF8DB0;font-weight:700}pre .c{color:#6FE3B0;font-weight:700}
 
 /* clips: phone frames */
 .clips-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:64px 0 20px}
-h2{font-weight:800;font-stretch:85%;font-size:clamp(30px,4vw,44px);letter-spacing:-.03em;margin:0;line-height:1}
+h2{font-weight:800;font-size:clamp(28px,3.6vw,40px);letter-spacing:-.04em;margin:0;line-height:1}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:26px 20px}
 .clip{display:flex;flex-direction:column;gap:12px}
 .phone{background:var(--ink);border-radius:28px;padding:7px;box-shadow:0 24px 40px -24px #16133A80}
@@ -416,7 +417,7 @@ h2{font-weight:800;font-stretch:85%;font-size:clamp(30px,4vw,44px);letter-spacin
   <button class="link-btn" id="folder">Open clips folder</button>
 </header>
 
-<h1>When chat explodes, you get the clip.</h1>
+<h1>When chat explodes<span class="p">,</span> you get the clip<span class="p">.</span></h1>
 <p class="lede">Paste a YouTube stream. The clipper watches the chat, and the moment it spikes it cuts a vertical clip with captions, ready for Shorts.</p>
 
 <div class="meter-wrap" aria-hidden="true">

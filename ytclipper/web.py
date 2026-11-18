@@ -129,6 +129,7 @@ class YouTubeState:
         self.connecting = False
         self.error = ""
         self._uploader = None
+        self._attempt = 0  # a blocked Google sign-in never calls back; let a newer click take over
 
     def status(self) -> dict:
         from . import youtube as yt
@@ -141,13 +142,19 @@ class YouTubeState:
     def connect(self) -> None:
         from . import youtube as yt
 
+        self._attempt += 1
+        me = self._attempt
         self.connecting, self.error = True, ""
         try:
             yt.connect()
+            ok = True
         except Exception as exc:  # noqa: BLE001 - shown on the page
-            self.error = f"Could not connect YouTube: {exc}"
+            ok = False
+            if me == self._attempt:  # an older, abandoned attempt timing out says nothing
+                self.error = f"Could not connect YouTube: {exc}"
         finally:
-            self.connecting = False
+            if me == self._attempt or ok:
+                self.connecting = False
 
     def upload(self, clip_dir: Path, overrides: dict) -> None:
         from .youtube import Uploader
@@ -290,9 +297,8 @@ def make_handler(job: Job, out: Path, port: int):
                     return self._json({"error": "Tick the box to confirm you'll only post clips you have the rights to."}, 400)
                 if not yt.client_secret_path():
                     return self._json({"error": "client_secret.json is missing. See 'Post to YouTube' in the README."}, 400)
-                if not yts.connecting:
-                    yt.save_settings(rights_ok=True)
-                    threading.Thread(target=yts.connect, daemon=True).start()
+                yt.save_settings(rights_ok=True)  # clicking again while waiting starts a fresh sign-in
+                threading.Thread(target=yts.connect, daemon=True).start()
                 return self._json({"ok": True})
             if action == "disconnect":
                 yt.disconnect()
@@ -692,8 +698,7 @@ async function ytRefresh() {
   show("ytRightsRow", yt.configured && !yt.connected);
   show("ytConnect", yt.configured && !yt.connected);
   show("ytAutoRow", yt.connected); show("ytDisconnect", yt.connected);
-  $("ytConnect").disabled = yt.connecting;
-  $("ytConnect").textContent = yt.connecting ? "Finish signing in in your browser…" : "Connect YouTube";
+  $("ytConnect").textContent = yt.connecting ? "Waiting for Google sign-in… (click to try again)" : "Connect YouTube";
   $("ytAuto").checked = yt.auto;
   if (yt.rights) $("ytRights").checked = true;
   $("ytState").textContent = yt.connected ? `Connected to ${yt.channel || "your channel"}` : "";

@@ -75,7 +75,7 @@ def finish_clip(raw: Path, clip_dir: Path, m: Moment, cfg: ClipConfig,
     render_final(raw, final, vertical=cfg.vertical, ass_name=ass_name, crf=cfg.crf, preset=cfg.preset)
     dur = probe(final)["duration"]
     thumbnail(final, clip_dir / "thumb.jpg", at=min(cfg.pre_roll, dur / 2))
-    tags = ["#shorts", "#live"] + [f"#{w}" for w in m.top_words[:3] if w.isalnum()]
+    tags = ["#shorts", "#live"] + [f"#{w}" for w in m.top_words[:3] if not w.isdigit()]
     meta = {
         **meta_extra,
         "file": "clip.mp4",

@@ -40,6 +40,10 @@
   line instead of a traceback; the HF download logger is `httpx2` (now silenced too).
 - Published at https://github.com/jatinsinghal9716/yt-live-clipper (public, MIT).
 - 2026-11-18: added the `ytclip web` page; tested in a browser (test run, ended stream, Stop, playback).
+- Multilingual: detector tokenizes any script (`_tokens`, keeps Hindi matras), hype words/laughter in
+  ~20 languages incl. Hindi/Hinglish. Whisper auto-detect misfires on short noisy Indic clips (a Telugu PUBG
+  stream came out as garbage), so the page offers a spoken-language pick + `large-v3-turbo` "Best" accuracy.
+  Captions drop segments Whisper flags as unreliable. Devanagari/Telugu burn-in renders via font fallback (Mac).
 - Still untested: Windows scripts and the web page on Windows; live-mode alignment on a stream with real speech.
 
 ## Next steps (original handoff)

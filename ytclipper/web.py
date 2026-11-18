@@ -109,6 +109,17 @@ def _open_folder(path: Path) -> None:
         subprocess.Popen(["open" if sys.platform == "darwin" else "xdg-open", str(path)])
 
 
+# caption languages offered on the page (Whisper knows ~100; "Auto" covers the rest)
+LANG_CHOICES = [("en", "English"), ("hi", "Hindi"), ("bn", "Bengali"), ("ta", "Tamil"),
+                ("te", "Telugu"), ("mr", "Marathi"), ("gu", "Gujarati"), ("kn", "Kannada"),
+                ("ml", "Malayalam"), ("pa", "Punjabi"), ("ur", "Urdu"), ("es", "Spanish"),
+                ("pt", "Portuguese"), ("fr", "French"), ("de", "German"), ("ru", "Russian"),
+                ("ar", "Arabic"), ("tr", "Turkish"), ("id", "Indonesian"), ("tl", "Filipino"),
+                ("vi", "Vietnamese"), ("th", "Thai"), ("ja", "Japanese"), ("ko", "Korean"),
+                ("zh", "Chinese")]
+_LANGS = {code for code, _ in LANG_CHOICES}
+
+
 def make_handler(job: Job, out: Path, port: int):
     allowed_hosts = {f"127.0.0.1:{port}", f"localhost:{port}"}
 
@@ -136,7 +147,7 @@ def make_handler(job: Job, out: Path, port: int):
                 return
             u = urlparse(self.path)
             if u.path == "/":
-                body = PAGE.encode()
+                body = _page().encode()
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html; charset=utf-8")
                 self.send_header("Content-Length", str(len(body)))
@@ -237,11 +248,20 @@ def make_handler(job: Job, out: Path, port: int):
                 args.append("--no-captions")
             if d.get("horizontal"):
                 args.append("--horizontal")
+            if d.get("lang") in _LANGS:
+                args += ["--language", d["lang"]]
+            if d.get("model") in ("base", "small", "large-v3-turbo"):
+                args += ["--whisper-model", d["model"]]
             args += ["-o", str(out)]
             job.start(args, mode)
             return self._json({"ok": True})
 
     return H
+
+
+def _page() -> str:
+    opts = "".join(f'<option value="{c}">{n}</option>' for c, n in LANG_CHOICES)
+    return PAGE.replace("__LANG_OPTIONS__", opts)
 
 
 def serve(out: Path, port: int = 8765, open_browser: bool = True) -> int:
@@ -425,6 +445,11 @@ h2{font-weight:800;font-stretch:85%;font-size:clamp(30px,4vw,44px);letter-spacin
     <label id="topbox" hidden>Best moments
       <select id="top"><option>3</option><option selected>5</option><option>10</option><option>20</option></select></label>
     <label><input type="checkbox" id="caps" checked> Captions</label>
+    <label>Spoken language
+      <select id="lang"><option value="">Auto-detect</option>__LANG_OPTIONS__</select></label>
+    <label>Caption accuracy
+      <select id="model"><option value="base" selected>Fast</option>
+      <option value="large-v3-turbo" title="About 35 s per clip; downloads 1.6 GB once">Best (slower)</option></select></label>
     <label><input type="checkbox" id="horiz"> Keep wide 16:9</label>
   </div>
   <div class="err" id="err" role="alert"></div>
@@ -444,7 +469,7 @@ your own streams, or streamers who allow clipping.</p>
 </main>
 <script>
 const $ = id => document.getElementById(id);
-let seq = 0, running = false, spikes = 0, ready = 0, clipKey = "";
+let seq = 0, running = false, mine = false, spikes = 0, ready = 0, clipKey = "";
 const post = (path, body) => fetch(path, {method: "POST", headers: {"Content-Type": "application/json"},
   body: JSON.stringify(body || {})}).then(r => r.json());
 const mode = () => document.querySelector("input[name=mode]:checked").value;
@@ -453,6 +478,8 @@ const HELP = {
   replay: "For a stream that already ended and still has chat replay. Only the best moments are downloaded.",
   demo: "A 2.5-minute fake stream with two planted moments. No link needed: try this first.",
 };
+$("caps").addEventListener("change", () => {
+  $("lang").disabled = $("model").disabled = !$("caps").checked; });
 function syncMode() {
   $("err").textContent = "";
   $("urlbox").hidden = mode() === "demo";
@@ -460,7 +487,10 @@ function syncMode() {
   $("modeHelp").textContent = HELP[mode()];
 }
 document.querySelectorAll("input[name=mode]").forEach(r => r.addEventListener("change", syncMode));
-try { $("url").value = localStorage.getItem("ytclip-url") || ""; } catch (e) {}
+try {
+  $("url").value = localStorage.getItem("ytclip-url") || "";
+  for (const id of ["lang", "model"]) { const v = localStorage.getItem("ytclip-" + id); if (v !== null) $(id).value = v; }
+} catch (e) {}
 
 /* ---- chat meter: a resting shape, then real 10 s chat scores while a stream runs ---- */
 const N = innerWidth < 720 ? 32 : 56;
@@ -500,11 +530,13 @@ function intro() {   // one orchestrated moment on load: bars rise left to right
 $("start").onclick = async () => {
   $("err").textContent = "";
   const url = $("url").value.trim();
-  try { localStorage.setItem("ytclip-url", url); } catch (e) {}
+  try { localStorage.setItem("ytclip-url", url); localStorage.setItem("ytclip-lang", $("lang").value);
+        localStorage.setItem("ytclip-model", $("model").value); } catch (e) {}
   const r = await post("/api/start", {mode: mode(), url, sensitivity: $("sens").value,
-    top: $("top").value, captions: $("caps").checked, horizontal: $("horiz").checked});
+    top: $("top").value, captions: $("caps").checked, horizontal: $("horiz").checked,
+    lang: $("lang").value, model: $("model").value});
   if (r.error) { $("err").textContent = r.error; return; }
-  seq = 0; spikes = 0; ready = 0; live = []; $("log").textContent = ""; draw();
+  seq = 0; spikes = 0; ready = 0; live = []; mine = true; $("log").textContent = ""; draw();
   poll();
 };
 $("stop").onclick = () => post("/api/stop");
@@ -520,7 +552,7 @@ function addLines(lines) {
   for (const l of lines) {
     const span = document.createElement("span");
     const bin = l.match(/bin_score=([\d.]+)/);
-    if (bin) live.push({v: +bin[1], spike: false});
+    if (bin && (running || mine)) live.push({v: +bin[1], spike: false});  // not an old run's log
     if (l.includes("SPIKE!")) { span.className = "s"; spikes++; if (live.length) live[live.length - 1].spike = true; }
     const found = l.match(/found (\d+) spike/);  // replay mode reports all spikes at once
     if (found) { span.className = "s"; spikes = +found[1]; }
@@ -537,8 +569,8 @@ const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
 async function poll() {
   try {
     const s = await fetch("/api/status?since=" + seq).then(r => r.json());
-    addLines(s.lines); seq = s.seq;
     const was = running; running = s.running;
+    addLines(s.lines); seq = s.seq;
     $("dot").className = "dot" + (running ? " on" : "");
     $("state").textContent = running ? (s.stopping ? "Stopping" : "Clipping") : (seq ? "Finished" : "Ready");
     $("counts").textContent = seq ? `${plural(spikes, "spike")}, ${plural(ready, "clip")} ready` : "";

@@ -14,34 +14,76 @@ from __future__ import annotations
 
 import re
 import statistics
+import unicodedata
 from collections import Counter, defaultdict, deque
 from dataclasses import dataclass, field
 
 from .chat import ChatMessage
 from .config import DetectorConfig
 
+# Spikes come from message COUNT and distinct people, which works in every language.
+# These lists only add a small bonus for hype words, in many languages and scripts.
 HYPE_TOKENS = {
+    # English / Twitch / YouTube slang
     "lol", "lmao", "lmfao", "rofl", "omg", "omfg", "wtf", "wow", "woah", "whoa",
     "pog", "poggers", "pogchamp", "kekw", "kek", "lul", "lulw", "w", "ww", "www",
     "holy", "insane", "crazy", "noway", "bro", "goat", "gg", "letsgo", "hype",
     "clip", "clipit", "clipped", "sheesh", "bruh", "dead", "hahaha", "haha",
     "yooo", "yoo", "ayo", "nooo", "noo", "what", "huh", "omegalul", "monkas",
-    "f", "rip", "legend", "clutch", "massive", "unreal", "jaw",
+    "f", "rip", "legend", "clutch", "massive", "unreal", "jaw", "op", "goated", "fire",
+    # Hindi / Hinglish (roman + Devanagari)
+    "bhai", "bhaiya", "kya", "mast", "zabardast", "jabardast", "bawal", "bawaal", "gajab",
+    "gazab", "kamaal", "kamal", "maza", "mazaa", "pagal", "paagal", "arey", "arre", "oye",
+    "uff", "haye", "khatarnak", "khatarnaak", "dhamaka", "jhakaas", "faad", "phaad", "tagda",
+    "goosebumps", "bhayankar", "waah", "wah", "shabash", "ekdum",
+    "भाई", "क्या", "वाह", "गजब", "ग़ज़ब", "कमाल", "जबरदस्त", "ज़बरदस्त", "मस्त", "बवाल",
+    "हाहा", "अरे", "क्लिप", "धमाका", "खतरनाक", "पागल", "शाबाश",
+    # other Indian languages (roman)
+    "semma", "mass", "keka", "darun", "balle", "kalakkal", "thalaiva", "jhakkas",
+    # Spanish / Portuguese / French / German / Italian
+    "jaja", "jajaja", "increible", "increíble", "golazo", "vamos", "kkkk", "caramba", "nossa",
+    "mano", "vamo", "mdr", "ptdr", "incroyable", "krass", "geil", "pazzesco",
+    # Russian / Turkish / Indonesian / Filipino / Vietnamese / Arabic
+    "ахаха", "ору", "жесть", "вау", "имба", "капец", "efsane", "vay", "wkwk", "anjir",
+    "gila", "mantap", "grabe", "lodi", "petmalu", "vãi", "đỉnh", "واو", "ههههه",
+    # Japanese / Korean / Chinese
+    "やばい", "すごい", "神", "대박", "와", "미쳤다", "牛", "卧槽", "太强了", "厉害",
 }
-HYPE_PHRASES = ("no way", "let's go", "lets go", "clip it", "clip that", "oh my god", "what the")
+HYPE_PHRASES = ("no way", "let's go", "lets go", "clip it", "clip that", "oh my god", "what the",
+                "kya baat", "kya scene", "op bolte", "chha gaye", "chaa gaye", "vera level",
+                "oye hoye", "dios mio", "dios mío", "क्या बात", "छा गए", "मज़ा आ गया", "मजा आ गया")
+# laughter / hype typed as repeated letters or without spaces, in many scripts
+_LAUGH = re.compile(r"(?:ha){2,}|(?:ja){2,}|(?:he){3,}|(?:wk){2,}|(?:ха){2,}|(?:हा){2,}"
+                    r"|k{4,}|w{3,}|5{3,}|6{3,}|ㅋ{2,}|ㅎ{2,}|草|哈{2,}|笑|ه{3,}|xd", re.I)
+_CLIP_WORDS = ("clip", "क्लिप", "クリップ", "클립", "剪辑", "klip")
 HYPE_EMOJI = set("💀😂🤣🔥😱😭😮🤯👏🙌💯😳🫨‼❗❓")
 PER_AUTHOR_CAP = 3.0
-_WORD = re.compile(r"[a-z']+")
 _STRETCH = re.compile(r"(.)\1{2,}")
+
+
+def _tokens(text: str) -> list[str]:
+    """Words in any script: letters, digits and combining marks (Hindi matras etc.)."""
+    out, cur = [], []
+    for c in text:
+        if c.isalnum() or unicodedata.category(c)[0] == "M":
+            cur.append(c)
+        elif cur:
+            out.append("".join(cur))
+            cur = []
+    if cur:
+        out.append("".join(cur))
+    return out
 
 
 def message_weight(text: str, paid: bool = False) -> float:
     t = text.lower()
-    words = {_STRETCH.sub(r"\1\1", w) for w in _WORD.findall(t)} | set(_WORD.findall(t))
+    toks = _tokens(t)
+    words = {_STRETCH.sub(r"\1\1", w) for w in toks} | set(toks)
     w = 1.0
-    if words & HYPE_TOKENS or any(p in t for p in HYPE_PHRASES) or any(c in HYPE_EMOJI for c in text):
+    if (words & HYPE_TOKENS or any(p in t for p in HYPE_PHRASES) or _LAUGH.search(t)
+            or any(c in HYPE_EMOJI for c in text)):
         w += 0.5
-    if "clip" in t:
+    if any(k in t for k in _CLIP_WORDS):
         w += 1.0
     letters = [c for c in text if c.isalpha()]
     if len(letters) >= 4 and all(c.isupper() for c in letters):
@@ -88,7 +130,10 @@ class _Bin:
 
 
 _STOP = {"the", "a", "an", "is", "it", "to", "i", "you", "and", "of", "that", "this", "in",
-         "he", "she", "on", "for", "was", "my", "me", "so", "be", "just", "are", "do", "with"}
+         "he", "she", "on", "for", "was", "my", "me", "so", "be", "just", "are", "do", "with",
+         "hai", "ki", "ka", "ke", "ko", "se", "ye", "wo", "na", "ho", "aur", "bhi", "mein",
+         "है", "की", "का", "के", "को", "से", "ये", "वो", "तो", "ना", "हो", "और", "भी", "में",
+         "que", "de", "la", "el", "es", "y", "en", "un", "le", "et", "les", "der", "die", "das"}
 
 
 class SpikeDetector:
@@ -187,7 +232,7 @@ class SpikeDetector:
             authors.update(b.authors)
             texts.extend(b.texts)
             for t in b.texts:
-                for w in set(_WORD.findall(t.lower())):
+                for w in set(_tokens(t.lower())):
                     if w not in _STOP and len(w) > 1:
                         words[w] += 1
         peak = max(e[2] for e in ev)

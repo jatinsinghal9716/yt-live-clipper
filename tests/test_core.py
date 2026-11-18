@@ -250,3 +250,13 @@ def test_web_guards(tmp_path):
         assert req("POST", "/api/start", body='{"mode":"live","url":"file:///etc"}')[0] == 400
     finally:
         srv.shutdown()
+
+
+def test_hype_words_many_languages():
+    from ytclipper.detector import _tokens, message_weight
+    for hype in ["भाई क्या बात है", "kya baat hai bhai", "jajajaja", "kkkkkk", "ㅋㅋㅋ", "草", "wkwkwk", "हाहाहा"]:
+        assert message_weight(hype) > 1.0, hype
+    for plain in ["hello", "नमस्ते", "the house"]:
+        assert message_weight(plain) == 1.0, plain
+    assert message_weight("क्लिप करो") >= 2.0
+    assert _tokens("भाई क्या बात है!") == ["भाई", "क्या", "बात", "है"]  # matras stay inside words

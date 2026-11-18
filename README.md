@@ -129,7 +129,8 @@ Output for every clip (`clips_output/session-<time>/clips/001_HHMMSS/`):
 | `--no-captions` | skip Whisper (much faster on slow PCs) |
 | `--whisper-model small` | better captions (`tiny` < `base` < `small` < `medium` < `large-v3`) |
 | `--device cuda` | use an NVIDIA GPU for captions |
-| `--language en` | force the caption language |
+| `--language hi` | caption language (`hi`, `te`, `ta`, `es`...). Set it for Indian languages: auto-detect often guesses wrong on short, noisy clips |
+| `--whisper-model large-v3-turbo` | most accurate captions, best for Hindi and other non-English speech (about 35 s per clip, 1.6 GB one-time download) |
 | `--quality 720` | record lower quality (less CPU/disk) |
 | `--buffer-minutes 15` | how much stream is kept on disk (old parts auto-deleted) |
 | `--keep-recording` | also keep the full stream recording |
@@ -161,6 +162,9 @@ only those few seconds of video. It never downloads the full 8-hour VOD.
 - A window is a spike when it beats the stream's own rolling 6-minute baseline
   (≥ 2x the median **and** median + 3 robust std-devs **and** at least 3 different people).
   Small and huge streams both work because each is compared with its own normal.
+- **Any language:** spikes come from how many people are typing, so Hindi, Hinglish, Tamil,
+  Spanish, Korean... chats all work. Hype words and laughter (`भाई`, `kya baat`, `jajaja`, `ㅋㅋㅋ`, `草`,
+  `wkwk`) in many languages add a small bonus.
 - Neighbouring spike windows merge into one moment. Chat reacts **after** the event,
   so the clip keeps 30 s before the spike and 8 s after it.
 

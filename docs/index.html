@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>YT Live Clipper</title>
+<meta name="description" content="Free app that watches a YouTube live stream's chat, cuts a captioned vertical clip whenever chat spikes, and can post it to your own YouTube channel.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400..800&display=swap" rel="stylesheet">
+<style>
+:root{--fog:#F2F3F7;--paper:#FFFFFF;--ink:#16133A;--mute:#6E6C88;--line:#E2E3EC;--hot:#FF2D6F;--hot-deep:#E0185A;--violet:#6A4BFF}
+*{box-sizing:border-box}
+body{margin:0;color:var(--ink);font:400 17px/1.65 "Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  -webkit-font-smoothing:antialiased;
+  background:radial-gradient(1100px 520px at 88% -8%,#E4DEFF 0%,transparent 60%),
+             radial-gradient(900px 480px at -10% 18%,#FFE1EA 0%,transparent 55%),var(--fog)}
+main{max-width:1000px;margin:0 auto;padding:28px 24px 72px}
+a{color:var(--hot-deep);font-weight:600}
+:focus-visible{outline:3px solid var(--violet);outline-offset:3px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:56px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700}
+.rec{width:12px;height:12px;border-radius:50%;background:var(--hot);box-shadow:0 0 0 5px #FF2D6F22}
+.top nav{display:flex;gap:20px;font-size:15px}
+h1{font-weight:800;font-size:clamp(38px,6.4vw,76px);line-height:1.02;letter-spacing:-.03em;margin:0;max-width:15ch;text-wrap:balance}
+h1 .p{margin-left:-.09em}
+.lede{font-size:clamp(17px,1.7vw,20px);color:var(--mute);max-width:52ch;margin:20px 0 28px}
+.cta{display:inline-block;background:var(--hot);color:#fff;text-decoration:none;font-weight:700;border-radius:999px;
+  padding:14px 26px;box-shadow:0 12px 26px -10px var(--hot)}
+.cta:hover{background:var(--hot-deep)}
+.shot{display:block;width:100%;height:auto;border-radius:24px;margin:48px 0 0;box-shadow:0 30px 60px -30px #2A1F7A55;border:1px solid var(--line)}
+h2{font-weight:800;font-size:clamp(26px,3.2vw,36px);letter-spacing:-.03em;margin:64px 0 12px;line-height:1.1}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px;margin:20px 0 0;padding:0;list-style:none;counter-reset:s}
+.steps li{background:var(--paper);border-radius:22px;padding:22px;counter-increment:s;border:1px solid var(--line)}
+.steps li::before{content:counter(s);display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;
+  background:var(--ink);color:#fff;font-weight:700;font-size:14px;margin-bottom:10px}
+.steps b{display:block;font-size:18px;margin-bottom:4px}
+.steps p{margin:0;color:var(--mute);font-size:15.5px}
+.prose p,.prose li{max-width:70ch;color:#3A3757}
+.prose ul{padding-left:20px}
+footer{margin-top:72px;padding-top:24px;border-top:1px solid var(--line);color:var(--mute);font-size:14px;display:flex;gap:18px;flex-wrap:wrap}
+</style></head>
+<body><main>
+<header class="top">
+  <div class="brand"><span class="rec" aria-hidden="true"></span>YT Live Clipper</div>
+  <nav><a href="privacy.html">Privacy policy</a><a href="https://github.com/jatinsinghal9716/yt-live-clipper">Source code</a></nav>
+</header>
+
+<h1>When chat explodes<span class="p">,</span> you get the clip<span class="p">.</span></h1>
+<p class="lede">YT Live Clipper is a free app for streamers. It watches your YouTube live stream's chat, and when chat
+spikes it cuts a vertical clip with captions and can post it to your own YouTube channel as a Short.</p>
+<a class="cta" href="https://github.com/jatinsinghal9716/yt-live-clipper#download">Download for free</a>
+
+<img class="shot" src="screenshot-home.png" alt="The YT Live Clipper app: paste a YouTube link and press Start clipping" width="1280" height="860">
+
+<h2>How it works</h2>
+<ol class="steps">
+  <li><b>Paste your stream link</b><p>Live now, starting soon, or a stream that already ended with chat replay.</p></li>
+  <li><b>Chat spikes become clips</b><p>The app counts chat activity every 10 seconds and cuts a 9:16 clip with captions around each spike.</p></li>
+  <li><b>Post to your channel</b><p>Connect your YouTube channel once, and clips are posted with a title, description and tags.</p></li>
+</ol>
+
+<h2>Runs on your own computer</h2>
+<div class="prose">
+<p>The app is open source and runs entirely on your computer. There is no server and no account with us.
+When you choose <b>Connect YouTube</b>, you sign in with Google and grant the app permission to:</p>
+<ul>
+  <li><b>Upload videos to your YouTube channel</b> (the clips you choose to post, or every new clip if you turn on automatic posting).</li>
+  <li><b>See your channel's name</b>, so the app can show which channel it is connected to.</li>
+</ul>
+<p>Your Google sign-in is stored only on your computer and is never sent to us. You can disconnect at any time.
+Read the <a href="privacy.html">privacy policy</a> for details.</p>
+<p>Only post clips you have the rights to: your own streams, or streams whose owner allows clipping.</p>
+</div>
+
+<footer><span>YT Live Clipper is free, open-source software (MIT license).</span>
+<a href="privacy.html">Privacy policy</a><a href="https://github.com/jatinsinghal9716/yt-live-clipper/issues">Contact</a></footer>
+</main></body></html>

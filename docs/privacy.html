@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Privacy Policy · YT Live Clipper</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400..800&display=swap" rel="stylesheet">
+<style>
+:root{--fog:#F2F3F7;--paper:#FFFFFF;--ink:#16133A;--mute:#6E6C88;--line:#E2E3EC;--hot:#FF2D6F;--hot-deep:#E0185A;--violet:#6A4BFF}
+*{box-sizing:border-box}
+body{margin:0;color:var(--ink);font:400 17px/1.7 "Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  -webkit-font-smoothing:antialiased;background:var(--fog)}
+main{max-width:760px;margin:0 auto;padding:28px 24px 72px}
+a{color:var(--hot-deep);font-weight:600}
+:focus-visible{outline:3px solid var(--violet);outline-offset:3px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:44px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;color:var(--ink);text-decoration:none}
+.rec{width:12px;height:12px;border-radius:50%;background:var(--hot);box-shadow:0 0 0 5px #FF2D6F22}
+h1{font-weight:800;font-size:clamp(34px,5vw,52px);letter-spacing:-.03em;line-height:1.05;margin:0 0 8px}
+.date{color:var(--mute);margin:0 0 32px}
+h2{font-size:21px;letter-spacing:-.01em;margin:36px 0 8px}
+p,li{color:#3A3757}
+ul{padding-left:22px}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:22px;padding:20px 24px;margin:24px 0}
+.card p{margin:0}
+footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--line);color:var(--mute);font-size:14px}
+</style></head>
+<body><main>
+<header class="top"><a class="brand" href="./"><span class="rec" aria-hidden="true"></span>YT Live Clipper</a></header>
+
+<h1>Privacy policy</h1>
+<p class="date">Last updated: 18 November 2026</p>
+
+<div class="card"><p><b>In short:</b> YT Live Clipper runs on your own computer. We do not run a server, we do not
+collect your data, and your Google sign-in never leaves your computer. The app talks only to YouTube and Google,
+directly from your computer, to do what you ask.</p></div>
+
+<h2>What the app is</h2>
+<p>YT Live Clipper is free, open-source software that you download and run on your own computer. It reads a
+YouTube live stream's public chat, cuts short clips when chat activity spikes, and, if you choose, posts those
+clips to your own YouTube channel. The full source code is public on
+<a href="https://github.com/jatinsinghal9716/yt-live-clipper">GitHub</a>.</p>
+
+<h2>Google user data the app accesses</h2>
+<p>Only when you click <b>Connect YouTube</b> and agree on Google's sign-in screen, the app receives permission to:</p>
+<ul>
+  <li><b>Upload videos to your YouTube channel</b> (<code>youtube.upload</code>): to post the clips you choose,
+    or every new clip if you turn on automatic posting.</li>
+  <li><b>View your YouTube account</b> (<code>youtube.readonly</code>): used only to read your channel's name, so the
+    app can show which channel it is connected to.</li>
+</ul>
+
+<h2>How that data is used, stored and shared</h2>
+<ul>
+  <li>Your Google sign-in token is saved only on your computer, in a file readable only by your user account
+    (<code>~/.ytclipper/youtube_token.json</code>). It is never sent to the app's developers or to anyone else.</li>
+  <li>Videos, titles, descriptions and tags are sent only to YouTube, directly from your computer, when a clip is posted.</li>
+  <li>The app does not collect analytics, does not use advertising, and does not sell, share or transfer any Google
+    user data. Nobody other than you and Google can see what the app does with your account.</li>
+  <li>YT Live Clipper's use and transfer of information received from Google APIs adheres to the
+    <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>,
+    including the Limited Use requirements.</li>
+</ul>
+
+<h2>Other data the app handles</h2>
+<p>To find moments, the app reads the public chat of the stream you give it and downloads that stream's video
+to your computer. Clips, captions and chat files are saved in a folder on your computer and are not sent anywhere,
+except a clip you post to YouTube. Captions are made on your computer with an open-source speech model.</p>
+
+<h2>Deleting your data and revoking access</h2>
+<ul>
+  <li>Click <b>Disconnect</b> in the app to delete the saved sign-in from your computer.</li>
+  <li>You can also remove the app's access at any time at
+    <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>.</li>
+  <li>Delete the app's folder and <code>~/.ytclipper</code> to remove everything it stored.</li>
+</ul>
+
+<h2>YouTube</h2>
+<p>By connecting your channel you also agree to the <a href="https://www.youtube.com/t/terms">YouTube Terms of Service</a>.
+Google's own handling of your data is described in the <a href="https://policies.google.com/privacy">Google Privacy Policy</a>.</p>
+
+<h2>Changes and contact</h2>
+<p>If this policy changes, the new version will be posted on this page with a new date. Questions:
+<a href="https://github.com/jatinsinghal9716/yt-live-clipper/issues">open an issue on GitHub</a>.</p>
+
+<footer>YT Live Clipper · <a href="./">Home</a></footer>
+</main></body></html>

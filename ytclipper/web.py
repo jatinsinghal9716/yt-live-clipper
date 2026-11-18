@@ -277,100 +277,170 @@ PAGE = r"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>YT Live Clipper</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,300..800&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#f5f5f7;--card:#fff;--fg:#16171b;--mut:#62666f;--line:#e2e3e8;--acc:#e8285e;--acc2:#c81d4e;
---ok:#14895a;--log:#f0f1f4;--warn:#b45309}
-@media (prefers-color-scheme:dark){:root{--bg:#0f1013;--card:#181a1f;--fg:#eceef2;--mut:#9ca1ab;
---line:#2a2d35;--log:#111216;--ok:#3ccf8e;--warn:#f0a44b}}
+:root{
+  --fog:#F2F3F7; --paper:#FFFFFF; --ink:#16133A; --mute:#6E6C88; --line:#E2E3EC;
+  --hot:#FF2D6F; --hot-deep:#E0185A; --violet:#6A4BFF; --ok:#12A46B;
+  --font:"Bricolage Grotesque",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-main{max-width:880px;margin:0 auto;padding:28px 16px 60px}
-h1{font-size:26px;margin:0}
-.sub{color:var(--mut);margin:4px 0 22px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:18px}
-h2{font-size:17px;margin:0 0 14px}
-.modes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
-.modes label{border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;cursor:pointer}
-.modes input{position:absolute;opacity:0}
-.modes label:has(input:checked){border-color:var(--acc);background:color-mix(in srgb,var(--acc) 8%,transparent)}
-.modes label:has(input:focus-visible){outline:2px solid var(--acc);outline-offset:2px}
-.modes b{display:block;font-size:15px}.modes span{font-size:13px;color:var(--mut)}
-input[type=url]{width:100%;font:inherit;padding:12px 14px;border:1.5px solid var(--line);border-radius:12px;
-background:var(--bg);color:var(--fg)}
-input[type=url]:focus{outline:none;border-color:var(--acc)}
-.row{display:flex;flex-wrap:wrap;gap:10px 22px;margin:14px 0 18px;font-size:15px;align-items:center}
-select{font:inherit;padding:4px 8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg)}
-.btns{display:flex;gap:10px;flex-wrap:wrap}
-button{font:inherit;font-weight:600;border:0;border-radius:12px;padding:12px 22px;cursor:pointer}
-.go{background:var(--acc);color:#fff}.go:hover{background:var(--acc2)}
-.ghost{background:transparent;color:var(--fg);border:1.5px solid var(--line)}
-button:disabled{opacity:.45;cursor:not-allowed}
-.err{color:var(--acc);margin-top:10px;min-height:1.2em;font-size:14px}
-.status{display:flex;align-items:center;gap:10px;font-weight:600;margin-bottom:10px}
-.dot{width:10px;height:10px;border-radius:50%;background:var(--mut)}
-.dot.on{background:var(--ok);animation:p 1.4s infinite}@keyframes p{50%{opacity:.35}}
-.counts{color:var(--mut);font-weight:400;font-size:14px}
-pre{background:var(--log);border-radius:10px;padding:12px;margin:0;height:220px;overflow:auto;
-font:12.5px/1.5 ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap;word-break:break-word}
-pre .s{color:var(--warn);font-weight:700}pre .c{color:var(--ok);font-weight:700}
-details summary{cursor:pointer;color:var(--mut);font-size:14px;margin-top:8px}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
-.clip{border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
-.clip video{width:100%;aspect-ratio:9/16;background:#000;object-fit:contain;display:block}
-.clip .b{padding:10px 12px;font-size:14px;display:flex;flex-direction:column;gap:4px}
-.clip .t{font-weight:600}.clip .m{color:var(--mut);font-size:12.5px}
-.clip a{color:var(--acc);font-weight:600;text-decoration:none}
-.empty{color:var(--mut)}
-.note{color:var(--mut);font-size:13px;margin-top:24px}
-@media (max-width:560px){.modes{grid-template-columns:1fr}}
+[hidden]{display:none!important}
+html{background:var(--fog)}
+body{margin:0;color:var(--ink);font:400 16px/1.55 var(--font);font-optical-sizing:auto;
+  background:
+    radial-gradient(1100px 520px at 88% -8%, #E4DEFF 0%, transparent 60%),
+    radial-gradient(900px 480px at -10% 18%, #FFE1EA 0%, transparent 55%),
+    var(--fog);
+  min-height:100vh}
+main{max-width:1080px;margin:0 auto;padding:28px 24px 72px}
+:focus-visible{outline:3px solid var(--violet);outline-offset:3px}
+
+/* brand row */
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:56px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:17px;letter-spacing:-.01em}
+.rec{width:12px;height:12px;border-radius:50%;background:var(--hot);box-shadow:0 0 0 5px #FF2D6F22}
+.link-btn{font:inherit;font-weight:600;font-size:14px;color:var(--ink);background:var(--paper);
+  border:1px solid var(--line);border-radius:999px;padding:9px 16px;cursor:pointer}
+.link-btn:hover{border-color:var(--ink)}
+
+/* hero */
+h1{font-weight:800;font-stretch:78%;font-size:clamp(46px,8.4vw,104px);line-height:.9;
+  letter-spacing:-.035em;margin:0;max-width:11ch}
+.lede{font-size:clamp(17px,1.6vw,20px);color:var(--mute);max-width:46ch;margin:22px 0 0}
+
+/* the chat meter */
+.meter-wrap{margin:44px 0 28px;position:relative}
+.meter{height:150px;display:flex;align-items:flex-end;gap:5px;border-bottom:2px solid var(--ink);padding:0 2px}
+.bar{flex:1;min-width:3px;border-radius:5px 5px 2px 2px;background:#CFCDE3;height:6%;
+  transform-origin:bottom;transition:height .5s cubic-bezier(.2,.8,.2,1),background .3s}
+.bar.lit{background:linear-gradient(to top,#B9AEFF,var(--violet))}
+.bar.spike{background:linear-gradient(to top,var(--violet),var(--hot))}
+.meter-cap{display:flex;justify-content:space-between;color:var(--mute);font-size:13px;margin-top:8px}
+.meter-cap b{color:var(--ink);font-weight:600}
+.tag{position:absolute;top:-6px;transform:translate(-50%,-100%);background:var(--hot);color:#fff;font-weight:700;
+  font-size:13px;padding:5px 10px;border-radius:999px;white-space:nowrap;opacity:0;transition:opacity .4s, left .5s}
+.tag.on{opacity:1}
+.tag::after{content:"";position:absolute;left:50%;bottom:-5px;width:10px;height:10px;background:var(--hot);
+  transform:translateX(-50%) rotate(45deg);border-radius:2px;z-index:-1}
+
+/* console */
+.console{background:var(--paper);border-radius:30px;padding:26px;box-shadow:0 1px 0 var(--line),0 30px 60px -30px #2A1F7A40}
+.modes{display:inline-flex;background:var(--fog);border-radius:999px;padding:5px;gap:4px;flex-wrap:wrap}
+.modes label{position:relative;border-radius:999px;padding:9px 18px;cursor:pointer;font-weight:600;font-size:15px;color:var(--mute)}
+.modes input{position:absolute;opacity:0;inset:0;cursor:pointer}
+.modes label:has(input:checked){background:var(--ink);color:#fff}
+.modes label:has(input:focus-visible){outline:3px solid var(--violet);outline-offset:2px}
+.mode-help{color:var(--mute);font-size:14px;margin:10px 4px 18px}
+.bar-row{display:flex;gap:10px;align-items:stretch}
+#urlbox{flex:1;min-width:0}
+#url{width:100%;height:62px;font:inherit;font-size:17px;padding:0 24px;border-radius:999px;border:2px solid var(--line);
+  background:var(--fog);color:var(--ink)}
+#url::placeholder{color:#A09EB8}
+#url:focus{outline:none;border-color:var(--violet);background:var(--paper)}
+.go{height:62px;font:inherit;font-weight:700;font-size:17px;border:0;border-radius:999px;padding:0 30px;cursor:pointer;
+  color:#fff;background:var(--hot);box-shadow:0 12px 26px -10px var(--hot);white-space:nowrap;
+  transition:transform .15s, background .15s}
+.go:hover{background:var(--hot-deep)}.go:active{transform:scale(.97)}
+.stopb{height:62px;font:inherit;font-weight:600;font-size:16px;border-radius:999px;padding:0 24px;cursor:pointer;
+  background:transparent;color:var(--ink);border:2px solid var(--line)}
+.stopb:hover:not(:disabled){border-color:var(--ink)}
+button:disabled{opacity:.4;cursor:not-allowed;box-shadow:none}
+.opts{display:flex;flex-wrap:wrap;gap:10px 26px;margin-top:18px;font-size:15px;color:var(--mute);align-items:center}
+.opts label{display:flex;align-items:center;gap:8px}
+select{font:inherit;color:var(--ink);background:var(--fog);border:0;border-radius:10px;padding:6px 10px}
+input[type=checkbox]{accent-color:var(--violet);width:17px;height:17px}
+.err{color:var(--hot-deep);font-weight:600;margin-top:14px;min-height:1.4em;font-size:15px}
+
+/* status */
+.status{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin:30px 4px 0}
+.dot{width:11px;height:11px;border-radius:50%;background:#C4C2D6}
+.dot.on{background:var(--ok);box-shadow:0 0 0 0 #12A46B66;animation:ping 1.6s infinite}
+@keyframes ping{70%{box-shadow:0 0 0 10px #12A46B00}100%{box-shadow:0 0 0 0 #12A46B00}}
+#state{font-weight:700;font-size:18px}
+#counts{color:var(--mute)}
+#hint{color:var(--mute);font-size:15px;margin:6px 4px 0;max-width:70ch}
+details{margin:12px 4px 0}
+summary{cursor:pointer;color:var(--mute);font-size:14px;width:max-content}
+pre{background:var(--ink);color:#D9D6F5;border-radius:18px;padding:16px 18px;margin:10px 0 0;height:240px;overflow:auto;
+  font:12.5px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;white-space:pre-wrap;word-break:break-word}
+pre .s{color:#FF8DB0;font-weight:700}pre .c{color:#6FE3B0;font-weight:700}
+
+/* clips: phone frames */
+.clips-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:64px 0 20px}
+h2{font-weight:800;font-stretch:85%;font-size:clamp(30px,4vw,44px);letter-spacing:-.03em;margin:0;line-height:1}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:26px 20px}
+.clip{display:flex;flex-direction:column;gap:12px}
+.phone{background:var(--ink);border-radius:28px;padding:7px;box-shadow:0 24px 40px -24px #16133A80}
+.phone video{display:block;width:100%;aspect-ratio:9/16;object-fit:contain;background:#000;border-radius:22px}
+.clip .t{font-weight:700;font-size:16px;line-height:1.3;padding:0 4px;letter-spacing:-.01em}
+.clip .m{color:var(--mute);font-size:13.5px;padding:0 4px;display:flex;flex-wrap:wrap;gap:4px 12px}
+.clip a{color:var(--hot-deep);font-weight:700;font-size:14px;text-decoration:none;padding:0 4px;width:max-content}
+.clip a:hover{text-decoration:underline}
+.empty{grid-column:1/-1;border:2px dashed var(--line);border-radius:28px;padding:44px 24px;text-align:center;color:var(--mute)}
+.empty b{display:block;color:var(--ink);font-size:20px;margin-bottom:4px}
+.note{color:var(--mute);font-size:14px;margin-top:56px;max-width:70ch}
+
+@media (max-width:720px){
+  main{padding:20px 16px 56px}.top{margin-bottom:36px}
+  .bar-row{flex-wrap:wrap}#urlbox{flex-basis:100%}.go{flex:1}.go,.stopb{height:56px}
+  .console{padding:18px;border-radius:24px}.meter{height:110px;gap:3px}
+  .modes{display:flex;flex-wrap:nowrap}.modes label{flex:1;text-align:center;padding:9px 4px;font-size:13.5px;white-space:nowrap}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style></head>
 <body><main>
-<h1>YT Live Clipper</h1>
-<p class="sub">Paste a YouTube link. When chat goes wild, it cuts a vertical clip with captions.</p>
+<header class="top">
+  <div class="brand"><span class="rec" aria-hidden="true"></span>YT Live Clipper</div>
+  <button class="link-btn" id="folder">Open clips folder</button>
+</header>
 
-<section class="card">
-  <h2>1. What do you want to clip?</h2>
-  <div class="modes" role="radiogroup">
-    <label><input type="radio" name="mode" value="live" checked><b>Live stream</b><span>Live now or starting soon</span></label>
-    <label><input type="radio" name="mode" value="replay"><b>Ended stream</b><span>Past stream with chat replay</span></label>
-    <label><input type="radio" name="mode" value="demo"><b>Test run</b><span>Fake stream, no link needed</span></label>
+<h1>When chat explodes, you get the clip.</h1>
+<p class="lede">Paste a YouTube stream. The clipper watches the chat, and the moment it spikes it cuts a vertical clip with captions, ready for Shorts.</p>
+
+<div class="meter-wrap" aria-hidden="true">
+  <div class="tag" id="tag">Chat spikes here</div>
+  <div class="meter" id="meter"></div>
+  <div class="meter-cap"><span id="meterL">Chat activity, every 10 seconds</span><span id="meterR"></span></div>
+</div>
+
+<section class="console" aria-label="Start clipping">
+  <div class="modes" role="radiogroup" aria-label="What to clip">
+    <label><input type="radio" name="mode" value="live" checked>Live stream</label>
+    <label><input type="radio" name="mode" value="replay">Ended stream</label>
+    <label><input type="radio" name="mode" value="demo">Test run</label>
   </div>
-  <div id="urlbox">
-    <h2>2. Paste the YouTube link</h2>
-    <input id="url" type="url" placeholder="https://www.youtube.com/watch?v=...  or  https://www.youtube.com/@channel/live" autocomplete="off">
+  <p class="mode-help" id="modeHelp"></p>
+  <div class="bar-row">
+    <div id="urlbox"><input id="url" type="url" aria-label="YouTube link"
+      placeholder="Paste a YouTube link" autocomplete="off"></div>
+    <button class="go" id="start">Start clipping</button>
+    <button class="stopb" id="stop" disabled>Stop</button>
   </div>
-  <div class="row">
-    <label>Clips per chat:
-      <select id="sens"><option value="high">More clips (quiet chat)</option>
+  <div class="opts">
+    <label>Clips
+      <select id="sens"><option value="high">More (quiet chat)</option>
       <option value="medium" selected>Normal</option><option value="low">Only huge moments</option></select></label>
-    <label id="topbox" hidden>Best moments:
+    <label id="topbox" hidden>Best moments
       <select id="top"><option>3</option><option selected>5</option><option>10</option><option>20</option></select></label>
     <label><input type="checkbox" id="caps" checked> Captions</label>
-    <label><input type="checkbox" id="horiz"> Keep wide (16:9)</label>
-  </div>
-  <div class="btns">
-    <button class="go" id="start">Start clipping</button>
-    <button class="ghost" id="stop" disabled>Stop</button>
+    <label><input type="checkbox" id="horiz"> Keep wide 16:9</label>
   </div>
   <div class="err" id="err" role="alert"></div>
 </section>
 
-<section class="card">
-  <div class="status"><span class="dot" id="dot"></span><span id="state">Not running</span>
-    <span class="counts" id="counts"></span></div>
-  <div id="hint" class="counts"></div>
-  <details id="logbox"><summary>Show details</summary><pre id="log"></pre></details>
-</section>
+<div class="status" aria-live="polite">
+  <span class="dot" id="dot"></span><span id="state">Ready</span><span id="counts"></span>
+</div>
+<div id="hint"></div>
+<details id="logbox"><summary>Show technical details</summary><pre id="log"></pre></details>
 
-<section class="card">
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px">
-    <h2 style="margin:0">Your clips</h2>
-    <button class="ghost" id="folder" style="padding:8px 14px">Open clips folder</button>
-  </div>
-  <div class="grid" id="clips"></div>
-</section>
-<p class="note">Everything runs on this computer, for free. Only post clips you have permission to post
-(your own streams, or streamers who allow clipping).</p>
+<div class="clips-head"><h2>Your clips</h2></div>
+<div class="grid" id="clips"></div>
+
+<p class="note">Everything runs on this computer, for free. Only post clips you have permission to post:
+your own streams, or streamers who allow clipping.</p>
 </main>
 <script>
 const $ = id => document.getElementById(id);
@@ -378,13 +448,54 @@ let seq = 0, running = false, spikes = 0, ready = 0, clipKey = "";
 const post = (path, body) => fetch(path, {method: "POST", headers: {"Content-Type": "application/json"},
   body: JSON.stringify(body || {})}).then(r => r.json());
 const mode = () => document.querySelector("input[name=mode]:checked").value;
+const HELP = {
+  live: "For a stream that is live now or starting soon. Leave this page open while it runs.",
+  replay: "For a stream that already ended and still has chat replay. Only the best moments are downloaded.",
+  demo: "A 2.5-minute fake stream with two planted moments. No link needed: try this first.",
+};
 function syncMode() {
   $("err").textContent = "";
   $("urlbox").hidden = mode() === "demo";
   $("topbox").hidden = mode() !== "replay";
+  $("modeHelp").textContent = HELP[mode()];
 }
 document.querySelectorAll("input[name=mode]").forEach(r => r.addEventListener("change", syncMode));
 try { $("url").value = localStorage.getItem("ytclip-url") || ""; } catch (e) {}
+
+/* ---- chat meter: a resting shape, then real 10 s chat scores while a stream runs ---- */
+const N = innerWidth < 720 ? 32 : 56;
+const meter = $("meter"), bars = [];
+for (let i = 0; i < N; i++) { const b = document.createElement("div"); b.className = "bar"; meter.appendChild(b); bars.push(b); }
+const rest = Array.from({length: N}, (_, i) => {
+  const base = 14 + 9 * Math.sin(i * 0.9) + 7 * Math.sin(i * 2.3 + 1);
+  const peak = Math.exp(-((i - N * 0.72) ** 2) / 3.2) * 80;
+  return Math.max(6, base + peak);
+});
+let live = [];            // [{v, spike}]
+function draw() {
+  const data = live.length ? live.slice(-N) : null;
+  const max = data ? Math.max(10, ...data.map(d => d.v)) : 100;
+  let tagAt = -1;
+  bars.forEach((b, i) => {
+    let v, spike;
+    if (data) { const d = data[i - (N - data.length)]; v = d ? d.v / max * 96 : 3; spike = d && d.spike; }
+    else { v = rest[i]; spike = v > 70; }
+    b.style.height = Math.max(3, v) + "%";
+    b.className = "bar" + (spike ? " spike" : v > 34 ? " lit" : "");
+    if (spike) tagAt = i;
+  });
+  const tag = $("tag");
+  if (tagAt >= 0) { tag.style.left = ((tagAt + 0.5) / N * 100) + "%"; tag.classList.add("on"); }
+  else tag.classList.remove("on");
+}
+function intro() {   // one orchestrated moment on load: bars rise left to right
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return draw();
+  bars.forEach((b, i) => setTimeout(() => {
+    b.style.height = rest[i] + "%";
+    b.className = "bar" + (rest[i] > 70 ? " spike" : rest[i] > 34 ? " lit" : "");
+  }, 120 + i * 22));
+  setTimeout(draw, 160 + N * 22);
+}
 
 $("start").onclick = async () => {
   $("err").textContent = "";
@@ -393,22 +504,24 @@ $("start").onclick = async () => {
   const r = await post("/api/start", {mode: mode(), url, sensitivity: $("sens").value,
     top: $("top").value, captions: $("caps").checked, horizontal: $("horiz").checked});
   if (r.error) { $("err").textContent = r.error; return; }
-  seq = 0; spikes = 0; ready = 0; $("log").textContent = "";
+  seq = 0; spikes = 0; ready = 0; live = []; $("log").textContent = ""; draw();
   poll();
 };
 $("stop").onclick = () => post("/api/stop");
 $("folder").onclick = () => post("/api/open-folder");
 
 const HINT = {
-  live: "Watching the stream and chat. Clips appear below about a minute after chat spikes. Leave this tab open.",
+  live: "Watching the stream and its chat. Clips land below about a minute after chat spikes.",
   replay: "Reading the chat replay, then downloading only the best moments.",
-  demo: "Playing a 2.5-minute fake stream with two planted moments.",
+  demo: "Playing the fake stream. Two clips should appear in about 3 minutes.",
 };
 function addLines(lines) {
   const log = $("log"), atEnd = log.scrollTop + log.clientHeight >= log.scrollHeight - 20;
   for (const l of lines) {
     const span = document.createElement("span");
-    if (l.includes("SPIKE!")) { span.className = "s"; spikes++; }
+    const bin = l.match(/bin_score=([\d.]+)/);
+    if (bin) live.push({v: +bin[1], spike: false});
+    if (l.includes("SPIKE!")) { span.className = "s"; spikes++; if (live.length) live[live.length - 1].spike = true; }
     const found = l.match(/found (\d+) spike/);  // replay mode reports all spikes at once
     if (found) { span.className = "s"; spikes = +found[1]; }
     if (l.includes("CLIP READY")) { span.className = "c"; ready++; }
@@ -418,19 +531,22 @@ function addLines(lines) {
   }
   while (log.childNodes.length > 400) log.removeChild(log.firstChild);
   if (atEnd) log.scrollTop = log.scrollHeight;
+  if (lines.length) draw();
 }
+const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
 async function poll() {
   try {
     const s = await fetch("/api/status?since=" + seq).then(r => r.json());
     addLines(s.lines); seq = s.seq;
     const was = running; running = s.running;
     $("dot").className = "dot" + (running ? " on" : "");
-    $("state").textContent = running ? (s.stopping ? "Stopping…" : "Running") : (seq ? "Finished" : "Not running");
-    $("counts").textContent = seq ? `${spikes} chat spike${spikes == 1 ? "" : "s"} · ${ready} clip${ready == 1 ? "" : "s"} ready` : "";
+    $("state").textContent = running ? (s.stopping ? "Stopping" : "Clipping") : (seq ? "Finished" : "Ready");
+    $("counts").textContent = seq ? `${plural(spikes, "spike")}, ${plural(ready, "clip")} ready` : "";
     $("hint").textContent = running && !s.stopping ? (HINT[s.mode] || "") : "";
+    $("meterR").textContent = live.length ? "live" : "";
     $("start").disabled = running; $("stop").disabled = !running;
     if (s.lines.length || was !== running) loadClips();
-  } catch (e) { $("state").textContent = "Lost connection: is the clipper window still open?"; }
+  } catch (e) { $("state").textContent = "Lost connection. Is the clipper window still open?"; }
   clearTimeout(poll.t); poll.t = setTimeout(poll, running ? 1500 : 5000);
 }
 async function loadClips() {
@@ -440,23 +556,27 @@ async function loadClips() {
   clipKey = key;
   const g = $("clips"); g.textContent = "";
   if (!clips.length) {
-    const p = document.createElement("p"); p.className = "empty";
-    p.textContent = "No clips yet. Start one above, or try the Test run first.";
+    const p = document.createElement("div"); p.className = "empty";
+    const b = document.createElement("b"); b.textContent = "No clips yet";
+    p.append(b, "Start a stream above, or pick Test run to see one in about 3 minutes.");
     g.appendChild(p); return;
   }
   for (const c of clips) {
-    const d = document.createElement("div"); d.className = "clip";
+    const d = document.createElement("article"); d.className = "clip";
+    const ph = document.createElement("div"); ph.className = "phone";
     const v = document.createElement("video");
     v.src = c.video; v.poster = c.thumb; v.controls = true; v.preload = "none"; v.playsInline = true;
-    const b = document.createElement("div"); b.className = "b";
+    ph.appendChild(v);
     const t = document.createElement("div"); t.className = "t"; t.textContent = c.title || "Highlight";
     const m = document.createElement("div"); m.className = "m";
-    m.textContent = `${Math.round(c.duration)} s · at ${c.stream_time} · ${c.hashtags}`;
+    for (const x of [`${Math.round(c.duration)} s`, c.stream_time && `at ${c.stream_time}`, c.hashtags]) {
+      if (!x) continue; const s = document.createElement("span"); s.textContent = x; m.appendChild(s);
+    }
     const a = document.createElement("a"); a.href = c.video; a.download = ""; a.textContent = "Download clip";
-    b.append(t, m, a); d.append(v, b); g.appendChild(d);
+    d.append(ph, t, m, a); g.appendChild(d);
   }
 }
-syncMode(); poll(); loadClips();
+syncMode(); intro(); poll(); loadClips();
 </script>
 </body></html>
 """

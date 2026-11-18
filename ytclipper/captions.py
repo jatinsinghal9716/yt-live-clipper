@@ -52,9 +52,12 @@ class Transcriber:
                                                condition_on_previous_text=False)
             words: list[Word] = []
             for seg in segments:
+                # Whisper's own hallucination limits: repetition loops / very unsure segments
+                if seg.compression_ratio > 2.4 or seg.avg_logprob < -1.0:
+                    continue
                 for w in seg.words or []:
                     txt = w.word.strip()
-                    if txt:
+                    if txt and w.probability >= 0.2 and any(c.isalnum() for c in txt):
                         words.append(Word(float(w.start), float(w.end), txt))
             return words
 

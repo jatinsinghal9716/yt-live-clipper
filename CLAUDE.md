@@ -44,6 +44,11 @@
   ~20 languages incl. Hindi/Hinglish. Whisper auto-detect misfires on short noisy Indic clips (a Telugu PUBG
   stream came out as garbage), so the page offers a spoken-language pick + `large-v3-turbo` "Best" accuracy.
   Captions drop segments Whisper flags as unreliable. Devanagari/Telugu burn-in renders via font fallback (Mac).
+- YouTube posting (`youtube.py`): official google-api-python-client + google-auth-oauthlib; Desktop OAuth
+  client in `client_secret.json` (git-ignored); token in `~/.ytclipper/` (0600). Uploads are always PUBLIC
+  (user's explicit choice); unaudited projects get them locked private by YouTube. `Uploader` thread, `--upload`,
+  `ytclip connect-youtube`, web panel + per-clip editor dialog. Title = short spoken sentence or chat reaction
+  + stream title + #Shorts. Tested with fakes only: a real sign-in/upload needs the owner's client_secret.json.
 - Still untested: Windows scripts and the web page on Windows; live-mode alignment on a stream with real speech.
 
 ## Next steps (original handoff)

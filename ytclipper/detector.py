@@ -257,7 +257,7 @@ class SpikeDetector:
             authors.update(b.authors)
             texts.extend(b.texts)
             for t in b.texts:
-                for w in set(_tokens(t.lower())):
+                for w in {_STRETCH.sub(r"\1\1", w) for w in _tokens(_YT_EMOJI.sub(" ", t.lower()))}:
                     if w not in _STOP and len(w) > 1:
                         words[w] += 1
         peak = max(e[2] for e in ev)

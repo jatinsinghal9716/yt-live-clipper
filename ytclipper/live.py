@@ -38,6 +38,7 @@ class LiveOptions:
     duration: float = 0.0             # stop after N seconds (0 = until stream ends)
     wait: bool = False                # wait for a scheduled stream to go live
     stop_file: str | None = None      # stop gracefully once this file exists (web page Stop button)
+    upload: bool = False              # post each clip to the connected YouTube channel
     # demo / testing
     input_file: str | None = None
     chat_file: str | None = None
@@ -61,6 +62,11 @@ class LiveClipper:
         self.pending_starts: list[float] = []  # never delete buffer still needed by a clip
         self.lock = threading.Lock()
         self.recorded_anything = False
+        self.source_info: dict = {}       # stream title/channel for clip descriptions
+        self.uploader = None
+        if opts.upload:
+            from .youtube import Uploader
+            self.uploader = Uploader()
 
     # ------------------------------------------------------------------ #
     def run(self) -> list[dict]:
@@ -74,6 +80,9 @@ class LiveClipper:
                                                  start_wall=self.recorder.started_wall,
                                                  wait=o.wait).start()
         self.detector = SpikeDetector(self.det_cfg)
+        if o.url:  # in the background: it takes a few seconds and only feeds descriptions
+            from .youtube import stream_info
+            threading.Thread(target=lambda: self.source_info.update(stream_info(o.url)), daemon=True).start()
         worker = threading.Thread(target=self._worker, daemon=True, name="clip-worker")
         worker.start()
         write_index(self.clips_dir)
@@ -136,6 +145,8 @@ class LiveClipper:
             worker.join()
         except KeyboardInterrupt:
             log.warning("interrupted while rendering; partial results kept")
+        if self.uploader:
+            self.uploader.finish()
         self.chat.stop()
         self.recorder.stop()
         self.recorded_anything = bool(self.recorder.segments) or bool(self.clips)
@@ -174,6 +185,8 @@ class LiveClipper:
                 if meta:
                     self.clips.append(meta)
                     log.info("CLIP READY #%d: %s  (\"%s\")", idx, meta["path"], meta["suggested_title"])
+                    if self.uploader:
+                        self.uploader.add(Path(meta["path"]).parent)
             except Exception as exc:  # noqa: BLE001 - one bad clip must not stop the session
                 log.error("clip #%d failed: %s", idx, exc)
             finally:
@@ -199,6 +212,7 @@ class LiveClipper:
             "source": self.o.url or self.o.input_file,
             "stream_time": _fmt_hms(t_rel),
             "wall_time": datetime.fromtimestamp(start).isoformat(timespec="seconds"),
+            **self.source_info,
         }, self.clips_dir)
         meta["path"] = str((clip_dir / "clip.mp4").resolve())
         return meta

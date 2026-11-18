@@ -34,6 +34,8 @@ def _common(p: argparse.ArgumentParser) -> None:
     d.add_argument("--min-score", type=float, default=None, help="override minimum score per window")
     d.add_argument("--cookies", default=None, help="cookies.txt (only for members-only/age-gated streams)")
     p.add_argument("--stop-file", default=None, help=argparse.SUPPRESS)  # used by `ytclip web`
+    p.add_argument("--upload", action="store_true",
+                   help="post every clip publicly to your connected YouTube channel (see `ytclip connect-youtube`)")
 
 
 def _configs(a) -> tuple[DetectorConfig, ClipConfig]:
@@ -89,6 +91,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     sub.add_parser("doctor", help="check that ffmpeg & dependencies are installed")
 
+    sub.add_parser("connect-youtube", help="sign in to the YouTube channel clips are posted to")
+
     wb = sub.add_parser("web", help="open the simple web page (paste a link, press Start)")
     wb.add_argument("-o", "--out", default="clips_output", help="output folder (default: ./clips_output)")
     wb.add_argument("--port", type=int, default=8765)
@@ -109,7 +113,8 @@ def doctor() -> int:
         ok &= has_ass
         print(f"libass      {'OK' if has_ass else 'MISSING (captions cannot be burned in; use a full ffmpeg build)'}")
     for mod, name in (("yt_dlp", "yt-dlp"), ("streamlink", "streamlink"),
-                      ("chat_downloader", "chat-downloader"), ("faster_whisper", "faster-whisper")):
+                      ("chat_downloader", "chat-downloader"), ("faster_whisper", "faster-whisper"),
+                      ("googleapiclient", "youtube-api")):
         found = importlib.util.find_spec(mod) is not None
         ok &= found
         print(f"{name:<11} {'OK' if found else 'MISSING -> pip install -r requirements.txt'}")
@@ -125,6 +130,15 @@ def main(argv: list[str] | None = None) -> int:
         logging.getLogger(noisy).setLevel(logging.ERROR)
     if a.cmd == "doctor":
         return doctor()
+    if a.cmd == "connect-youtube":
+        from .youtube import connect
+
+        try:
+            print(f"connected to YouTube channel: {connect()}")
+            return 0
+        except Exception as exc:  # noqa: BLE001
+            print(f"could not connect YouTube: {exc}", file=sys.stderr)
+            return 1
     if a.cmd == "web":
         from .web import serve
 
@@ -134,6 +148,12 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     det, clip = _configs(a)
     out = Path(a.out)
+    if getattr(a, "upload", False):
+        from .youtube import credentials
+
+        if credentials() is None:
+            print("--upload: YouTube is not connected. Run `ytclip connect-youtube` first.", file=sys.stderr)
+            return 2
 
     if a.cmd == "live":
         from .live import LiveClipper, LiveOptions
@@ -142,7 +162,7 @@ def main(argv: list[str] | None = None) -> int:
                            quality=a.quality, cookies=a.cookies, buffer_minutes=a.buffer_minutes,
                            keep_recording=a.keep_recording, chat_delay=a.chat_delay,
                            max_clips=a.max_clips, duration=a.duration, wait=a.wait,
-                           stop_file=a.stop_file)
+                           stop_file=a.stop_file, upload=a.upload)
         lc = LiveClipper(opts, det, clip)
         if sys.platform == "darwin" and shutil.which("caffeinate"):
             # an idle Mac sleeps mid-stream and the buffer/chat freeze (lid-close still sleeps it)
@@ -161,7 +181,7 @@ def main(argv: list[str] | None = None) -> int:
             res = run_replay(ReplayOptions(url=a.url, out_dir=out, top=a.top, cookies=a.cookies,
                                            quality=a.quality, video_file=a.video_file,
                                            chat_file=a.chat_file, dry_run=a.dry_run,
-                                           stop_file=a.stop_file), det, clip)
+                                           stop_file=a.stop_file, upload=a.upload), det, clip)
         except RuntimeError as exc:  # expected failures (no chat replay, ...) - no traceback
             print(f"\nreplay failed: {exc}", file=sys.stderr)
             return 1

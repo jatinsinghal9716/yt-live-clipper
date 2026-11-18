@@ -37,6 +37,7 @@ class ReplayOptions:
     chat_file: str | None = None      # use a local *.live_chat.json instead of downloading
     dry_run: bool = False
     stop_file: str | None = None      # stop before the next clip once this file exists
+    upload: bool = False              # post each clip to the connected YouTube channel
 
 
 def download_chat(url: str, dest: Path, cookies: str | None) -> Path:
@@ -99,6 +100,9 @@ def run_replay(o: ReplayOptions, det_cfg: DetectorConfig, cfg: ClipConfig,
 
     if cfg.captions and transcriber is None:
         transcriber = Transcriber(cfg.whisper_model, cfg.whisper_device, cfg.whisper_compute, cfg.language)
+    from .youtube import Uploader, stream_info
+    info = stream_info(o.url)
+    uploader = Uploader() if o.upload else None
     results = []
     for i, m in enumerate(ranked, 1):
         if o.stop_file and Path(o.stop_file).exists():
@@ -118,12 +122,16 @@ def run_replay(o: ReplayOptions, det_cfg: DetectorConfig, cfg: ClipConfig,
                 got.unlink(missing_ok=True)
             meta = finish_clip(raw, clip_dir, m, cfg, transcriber, {
                 "index": i, "source": o.url or o.video_file, "stream_time": _fmt_hms(s),
-                "video_offset": round(s, 2)}, clips_dir)
+                "video_offset": round(s, 2), **info}, clips_dir)
             meta["path"] = str((clip_dir / "clip.mp4").resolve())
             results.append(meta)
             log.info("CLIP READY #%d: %s", i, meta["path"])
+            if uploader:
+                uploader.add(clip_dir)
         except (RuntimeError, FFmpegError) as exc:
             log.error("clip #%d failed: %s", i, exc)
+    if uploader:
+        uploader.finish()
     write_index(clips_dir)
     log.info("done: %d clip(s) -> %s", len(results), (clips_dir / "index.html").resolve())
     return results

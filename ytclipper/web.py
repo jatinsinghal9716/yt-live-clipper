@@ -95,6 +95,8 @@ def _clips(out: Path) -> list[dict]:
             "stream_time": meta.get("stream_time", ""),
             "hashtags": " ".join(meta.get("hashtags", [])),
             "source": meta.get("source", ""),
+            "dir": rel,
+            "yt": meta.get("youtube"),
             "mtime": meta_path.stat().st_mtime,
         })
     items.sort(key=lambda x: x["mtime"], reverse=True)
@@ -120,8 +122,48 @@ LANG_CHOICES = [("en", "English"), ("hi", "Hindi"), ("bn", "Bengali"), ("ta", "T
 _LANGS = {code for code, _ in LANG_CHOICES}
 
 
+class YouTubeState:
+    """Connect-in-progress flag and the page's own upload queue (auto-posting runs in the job)."""
+
+    def __init__(self) -> None:
+        self.connecting = False
+        self.error = ""
+        self._uploader = None
+
+    def status(self) -> dict:
+        from . import youtube as yt
+
+        st = yt.load_settings()
+        return {"configured": yt.client_secret_path() is not None, "connected": yt.TOKEN.is_file(),
+                "channel": st.get("channel") or "", "auto": bool(st.get("auto_upload")),
+                "rights": bool(st.get("rights_ok")), "connecting": self.connecting, "error": self.error}
+
+    def connect(self) -> None:
+        from . import youtube as yt
+
+        self.connecting, self.error = True, ""
+        try:
+            yt.connect()
+        except Exception as exc:  # noqa: BLE001 - shown on the page
+            self.error = f"Could not connect YouTube: {exc}"
+        finally:
+            self.connecting = False
+
+    def upload(self, clip_dir: Path, overrides: dict) -> None:
+        from .youtube import Uploader
+
+        if self._uploader is None:
+            self._uploader = Uploader()
+        self._uploader.add(clip_dir, overrides)
+
+
 def make_handler(job: Job, out: Path, port: int):
     allowed_hosts = {f"127.0.0.1:{port}", f"localhost:{port}"}
+    yts = YouTubeState()
+
+    def clip_dir(rel: str) -> Path | None:
+        d = (out / str(rel)).resolve()
+        return d if d.is_relative_to(out.resolve()) and (d / "meta.json").is_file() else None
 
     class H(BaseHTTPRequestHandler):
         def log_message(self, *a) -> None:  # keep the terminal quiet
@@ -160,6 +202,15 @@ def make_handler(job: Job, out: Path, port: int):
                             "lines": lines, "seq": seq})
             elif u.path == "/api/clips":
                 self._json(_clips(out))
+            elif u.path == "/api/youtube":
+                self._json(yts.status())
+            elif u.path == "/api/youtube/meta":
+                from .youtube import build_metadata
+
+                d = clip_dir(unquote(u.query.partition("clip=")[2]))
+                if d is None:
+                    return self.send_error(404)
+                self._json(build_metadata(json.loads((d / "meta.json").read_text(encoding="utf-8"))))
             elif u.path.startswith("/files/"):
                 self._file(unquote(u.path[len("/files/"):]))
             else:
@@ -227,6 +278,40 @@ def make_handler(job: Job, out: Path, port: int):
             if path == "/api/open-folder":
                 _open_folder(out)
                 return self._json({"ok": True})
+            if path.startswith("/api/youtube/"):
+                return self._youtube(path.rsplit("/", 1)[1], data)
+            self.send_error(404)
+
+        def _youtube(self, action: str, d: dict) -> None:
+            from . import youtube as yt
+
+            if action == "connect":
+                if not d.get("rights"):
+                    return self._json({"error": "Tick the box to confirm you'll only post clips you have the rights to."}, 400)
+                if not yt.client_secret_path():
+                    return self._json({"error": "client_secret.json is missing. See 'Post to YouTube' in the README."}, 400)
+                if not yts.connecting:
+                    yt.save_settings(rights_ok=True)
+                    threading.Thread(target=yts.connect, daemon=True).start()
+                return self._json({"ok": True})
+            if action == "disconnect":
+                yt.disconnect()
+                return self._json({"ok": True})
+            if action == "auto":
+                yt.save_settings(auto_upload=bool(d.get("on")))
+                return self._json({"ok": True})
+            if action == "upload":
+                cd = clip_dir(d.get("clip", ""))
+                if cd is None:
+                    return self._json({"error": "clip not found"}, 404)
+                if not yt.TOKEN.is_file():
+                    return self._json({"error": "Connect YouTube first."}, 400)
+                tags = d.get("tags") or []
+                if isinstance(tags, str):
+                    tags = [t.strip() for t in tags.split(",") if t.strip()]
+                yts.upload(cd, {"title": str(d.get("title") or ""), "description": str(d.get("description") or ""),
+                                "tags": [str(t)[:30] for t in tags][:40]})
+                return self._json({"ok": True})
             self.send_error(404)
 
         def _start(self, d: dict) -> None:
@@ -252,6 +337,9 @@ def make_handler(job: Job, out: Path, port: int):
                 args += ["--language", d["lang"]]
             if d.get("model") in ("base", "small", "large-v3-turbo"):
                 args += ["--whisper-model", d["model"]]
+            ys = yts.status()
+            if mode in ("live", "replay") and ys["auto"] and ys["connected"]:
+                args.append("--upload")  # post every new clip to the connected channel
             args += ["-o", str(out)]
             job.start(args, mode)
             return self._json({"ok": True})
@@ -403,6 +491,43 @@ h2{font-weight:800;font-size:clamp(28px,3.6vw,40px);letter-spacing:-.04em;margin
 .empty b{display:block;color:var(--ink);font-size:20px;margin-bottom:4px}
 .note{color:var(--mute);font-size:14px;margin-top:56px;max-width:70ch}
 
+/* post to YouTube */
+.ytpanel{background:var(--paper);border-radius:24px;padding:20px 26px;margin-top:16px;
+  box-shadow:0 1px 0 var(--line),0 20px 40px -30px #2A1F7A40}
+.yt-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:17px}
+.yt-logo{display:inline-grid;place-items:center;width:30px;height:21px;border-radius:6px;background:#FF0033;
+  color:#fff;font-size:10px}
+.yt-state{color:var(--ok);font-weight:600;font-size:15px}
+.yt-text{color:var(--mute);font-size:14.5px;margin:8px 0 0;max-width:75ch}
+.yt-rights{display:flex;gap:10px;align-items:flex-start;margin-top:14px;font-size:15px;max-width:70ch}
+.yt-rights input{margin-top:3px;flex:none}
+.yt-actions{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;margin-top:14px}
+.yt-connect{font:inherit;font-weight:700;font-size:15px;border:0;border-radius:999px;padding:12px 22px;cursor:pointer;
+  background:var(--ink);color:#fff}
+.yt-connect:hover:not(:disabled){background:#2A2560}
+.yt-auto{display:flex;gap:8px;align-items:center;font-weight:600;font-size:15px}
+.clip .yt-btn{font:inherit;font-weight:700;font-size:14px;border:1.5px solid var(--line);background:var(--paper);
+  color:var(--ink);border-radius:999px;padding:7px 14px;cursor:pointer;width:max-content;margin:0 4px}
+.clip .yt-btn:hover{border-color:var(--ink)}
+.clip .yt-note{font-size:13.5px;color:var(--mute);padding:0 4px}
+.clip .yt-note.bad{color:var(--hot-deep)}
+.ytpanel .err,.yt-edit .err{min-height:0;margin-top:8px}.ytpanel .err:empty,.yt-edit .err:empty{display:none}
+#ytDialog{border:0;border-radius:24px;padding:26px;width:min(620px,calc(100vw - 32px));color:var(--ink);
+  background:var(--paper);box-shadow:0 40px 80px -30px #16133A80}
+#ytDialog::backdrop{background:#16133A55;backdrop-filter:blur(3px)}
+#ytDialog h3{margin:0 0 4px;font-size:22px;letter-spacing:-.02em}
+#ytDialog .sub{color:var(--mute);font-size:14px;margin:0 0 16px}
+.yt-edit{display:flex;flex-direction:column;gap:12px}
+.yt-edit label{font-size:13px;color:var(--mute);display:flex;flex-direction:column;gap:4px}
+.yt-edit input,.yt-edit textarea{font:inherit;font-size:14px;color:var(--ink);background:var(--fog);border:1.5px solid var(--line);
+  border-radius:12px;padding:8px 10px;width:100%;resize:vertical}
+.yt-edit input:focus,.yt-edit textarea:focus{outline:none;border-color:var(--violet);background:var(--paper)}
+.yt-edit .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px}
+.yt-edit .yt-btn{font:inherit;font-weight:700;font-size:14px;border:1.5px solid var(--line);background:var(--paper);
+  color:var(--ink);border-radius:999px;padding:9px 16px;cursor:pointer}
+.yt-edit .go-sm{font:inherit;font-weight:700;font-size:14px;border:0;border-radius:999px;padding:9px 16px;cursor:pointer;
+  background:var(--hot);color:#fff}
+
 @media (max-width:720px){
   main{padding:20px 16px 56px}.top{margin-bottom:36px}
   .bar-row{flex-wrap:wrap}#urlbox{flex-basis:100%}.go{flex:1}.go,.stopb{height:56px}
@@ -455,6 +580,22 @@ h2{font-weight:800;font-size:clamp(28px,3.6vw,40px);letter-spacing:-.04em;margin
   </div>
   <div class="err" id="err" role="alert"></div>
 </section>
+
+<section class="ytpanel" aria-label="Post to YouTube">
+  <div class="yt-head"><span class="yt-logo" aria-hidden="true">&#9654;</span><b>Post to YouTube</b>
+    <span class="yt-state" id="ytState"></span></div>
+  <p class="yt-text" id="ytText"></p>
+  <label class="yt-rights" id="ytRightsRow" hidden><input type="checkbox" id="ytRights">
+    I'll only post clips I have the rights to: my own streams, or streams whose owner allows it.</label>
+  <div class="yt-actions">
+    <button class="yt-connect" id="ytConnect" hidden>Connect YouTube</button>
+    <label class="yt-auto" id="ytAutoRow" hidden><input type="checkbox" id="ytAuto"> Post every new clip automatically</label>
+    <button class="link-btn" id="ytDisconnect" hidden>Disconnect</button>
+  </div>
+  <div class="err" id="ytErr" role="alert"></div>
+</section>
+
+<dialog id="ytDialog" aria-labelledby="ytDlgTitle"></dialog>
 
 <div class="status" aria-live="polite">
   <span class="dot" id="dot"></span><span id="state">Ready</span><span id="counts"></span>
@@ -543,6 +684,81 @@ $("start").onclick = async () => {
 $("stop").onclick = () => post("/api/stop");
 $("folder").onclick = () => post("/api/open-folder");
 
+/* ---- post to YouTube ---- */
+let yt = {};
+async function ytRefresh() {
+  try { yt = await fetch("/api/youtube").then(r => r.json()); } catch (e) { return; }
+  const show = (id, on) => { $(id).hidden = !on; };
+  show("ytRightsRow", yt.configured && !yt.connected);
+  show("ytConnect", yt.configured && !yt.connected);
+  show("ytAutoRow", yt.connected); show("ytDisconnect", yt.connected);
+  $("ytConnect").disabled = yt.connecting;
+  $("ytConnect").textContent = yt.connecting ? "Finish signing in in your browser…" : "Connect YouTube";
+  $("ytAuto").checked = yt.auto;
+  if (yt.rights) $("ytRights").checked = true;
+  $("ytState").textContent = yt.connected ? `Connected to ${yt.channel || "your channel"}` : "";
+  $("ytText").textContent = !yt.configured
+    ? "To turn this on, add the app's client_secret.json file (see 'Post to YouTube' in the README)."
+    : !yt.connected
+    ? "Connect your channel once. Clips are then posted publicly as Shorts, with a title, description and tags written for you."
+    : "Clips are posted publicly as Shorts. Until this app passes YouTube's review, YouTube itself keeps uploads made through it private; switch them to Public in YouTube Studio.";
+  if (yt.error) $("ytErr").textContent = yt.error;
+}
+$("ytConnect").onclick = async () => {
+  $("ytErr").textContent = "";
+  const r = await post("/api/youtube/connect", {rights: $("ytRights").checked});
+  if (r.error) { $("ytErr").textContent = r.error; return; }
+  ytRefresh();
+};
+$("ytDisconnect").onclick = async () => { await post("/api/youtube/disconnect"); ytRefresh(); };
+$("ytAuto").onchange = () => post("/api/youtube/auto", {on: $("ytAuto").checked});
+
+function ytActions(c, card) {
+  const s = c.yt || {};
+  const box = document.createElement("div");
+  if (s.state === "posted") {
+    const a = document.createElement("a"); a.href = s.url; a.target = "_blank"; a.rel = "noopener";
+    a.textContent = "Watch on YouTube"; box.appendChild(a);
+  } else if (s.state === "uploading") {
+    const n = document.createElement("div"); n.className = "yt-note"; n.textContent = "Posting to YouTube…"; box.appendChild(n);
+  } else if (yt.connected) {
+    if (s.state === "failed") {
+      const n = document.createElement("div"); n.className = "yt-note bad"; n.textContent = "YouTube: " + s.error; box.appendChild(n);
+    }
+    const b = document.createElement("button"); b.className = "yt-btn";
+    b.textContent = s.state === "failed" ? "Try again" : "Post to YouTube";
+    b.onclick = () => openEditor(c);
+    box.appendChild(b);
+  }
+  return box;
+}
+async function openEditor(c) {
+  const md = await fetch("/api/youtube/meta?clip=" + encodeURIComponent(c.dir)).then(r => r.json());
+  const dlg = $("ytDialog"); dlg.textContent = "";
+  const h = Object.assign(document.createElement("h3"), {id: "ytDlgTitle", textContent: "Post to YouTube"});
+  const sub = Object.assign(document.createElement("p"), {className: "sub",
+    textContent: `Posted publicly to ${yt.channel || "your channel"} as a Short. Edit anything first.`});
+  const f = document.createElement("form"); f.className = "yt-edit";
+  const field = (label, el) => { const l = document.createElement("label"); l.append(label, el); f.appendChild(l); return el; };
+  const ti = field("Title", Object.assign(document.createElement("input"), {maxLength: 100, value: md.title, required: true}));
+  const de = field("Description", Object.assign(document.createElement("textarea"), {rows: 9, value: md.description}));
+  const ta = field("Tags, separated by commas", Object.assign(document.createElement("input"), {value: md.tags.join(", ")}));
+  const row = document.createElement("div"); row.className = "row";
+  const go = Object.assign(document.createElement("button"), {type: "submit", className: "go-sm", textContent: "Post publicly"});
+  const no = Object.assign(document.createElement("button"), {type: "button", className: "yt-btn", textContent: "Cancel"});
+  no.onclick = () => dlg.close();
+  row.append(go, no); f.appendChild(row);
+  f.onsubmit = async ev => {
+    ev.preventDefault(); go.disabled = true;
+    const r = await post("/api/youtube/upload", {clip: c.dir, title: ti.value, description: de.value, tags: ta.value});
+    if (r.error) { go.disabled = false; err.textContent = r.error; return; }
+    dlg.close(); clipKey = ""; setTimeout(loadClips, 800);
+  };
+  const err = Object.assign(document.createElement("div"), {className: "err"});
+  f.appendChild(err);
+  dlg.append(h, sub, f); dlg.showModal(); ti.focus();
+}
+
 const HINT = {
   live: "Watching the stream and its chat. Clips land below about a minute after chat spikes.",
   replay: "Reading the chat replay, then downloading only the best moments.",
@@ -590,14 +806,15 @@ async function poll() {
     $("hint").textContent = running && !s.stopping ? (HINT[s.mode] || "") : "";
     $("meterR").textContent = live.length ? "live" : "";
     $("start").disabled = running; $("stop").disabled = !running;
-    if (s.lines.length || was !== running) loadClips();
+    ytRefresh(); loadClips();
   } catch (e) { $("state").textContent = "Lost connection. Is the clipper window still open?"; }
   clearTimeout(poll.t); poll.t = setTimeout(poll, running ? 1500 : 5000);
 }
 async function loadClips() {
   const clips = await fetch("/api/clips").then(r => r.json());
-  const key = clips.map(c => c.video).join("|");
+  const key = clips.map(c => c.video + (c.yt ? c.yt.state : "")).join("|") + (yt.connected ? "+yt" : "");
   if (key === clipKey) return;
+  if ($("ytDialog").open || [...document.querySelectorAll(".clip video")].some(v => !v.paused)) return;
   clipKey = key;
   const g = $("clips"); g.textContent = "";
   if (!clips.length) {
@@ -618,10 +835,10 @@ async function loadClips() {
       if (!x) continue; const s = document.createElement("span"); s.textContent = x; m.appendChild(s);
     }
     const a = document.createElement("a"); a.href = c.video; a.download = ""; a.textContent = "Download clip";
-    d.append(ph, t, m, a); g.appendChild(d);
+    d.append(ph, t, m, a, ytActions(c, d)); g.appendChild(d);
   }
 }
-syncMode(); intro(); poll(); loadClips();
+syncMode(); intro(); ytRefresh().then(() => { poll(); loadClips(); });
 </script>
 </body></html>
 """

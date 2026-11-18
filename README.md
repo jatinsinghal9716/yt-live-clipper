@@ -170,6 +170,50 @@ ytclip replay "https://www.youtube.com/watch?v=VIDEO_ID" --dry-run   # just list
 It downloads only the chat (small), finds the top moments, and then downloads
 only those few seconds of video. It never downloads the full 8-hour VOD.
 
+## Post clips to YouTube automatically
+
+Connect your channel once, and every clip can be posted **publicly as a YouTube Short**, with a
+title, description and tags written for you:
+
+- **Title:** a short line the streamer said, or chat's top reaction, plus the stream title and `#Shorts`.
+- **Description:** what was said, a credit with the original stream's title, channel and link, the
+  time in the stream, the top chat reactions, and hashtags.
+- **Tags:** the channel name, words from the stream title and chat (any language), and Shorts tags.
+
+**On the web page:** tick "I'll only post clips I have the rights to", click **Connect YouTube** and sign in
+with Google. Then either switch on **Post every new clip automatically**, or press **Post to YouTube** under
+any clip to edit the title, description and tags first. Posted clips get a **Watch on YouTube** link.
+
+**From the command line:** `ytclip connect-youtube` once, then add `--upload` to `ytclip live` or `ytclip replay`.
+
+Your YouTube login is saved only on your computer (`~/.ytclipper/`). **Disconnect** removes it.
+
+### One-time setup for the person who runs this app (free, about 10 minutes)
+
+Uploading uses YouTube's official, free Data API. Google needs one "app" to be registered:
+
+1. Open [console.cloud.google.com](https://console.cloud.google.com), create a project (any name).
+2. **APIs & Services → Library →** search **YouTube Data API v3 → Enable**.
+3. **Google Auth Platform → Get started:** app name, your email, audience **External**, then create.
+4. **Audience → Test users:** add the Google accounts that will connect (up to 100 while testing).
+5. **Clients → Create client →** type **Desktop app → Create**, then **Download JSON**.
+6. Rename the file to **`client_secret.json`** and put it in this app's folder (next to `README.md`).
+   It is git-ignored; to give it to other people, include it in the ZIP you share (for example a
+   GitHub Release), not in the repository.
+
+### Limits Google sets (all free, but read before relying on it)
+
+| | While the app is in testing | After Google's checks |
+|---|---|---|
+| Who can connect | Up to 100 test users you add, with a "Google hasn't verified this app" warning | Anyone, no warning ([OAuth verification](https://support.google.com/cloud/answer/13463073): privacy policy, homepage on a domain you own, short demo video) |
+| Public posting | **YouTube keeps every upload private** until the app passes the [YouTube API audit](https://support.google.com/youtube/contact/yt_api_form). Switch them to Public in YouTube Studio meanwhile | Clips go public automatically |
+| Uploads per day | About 6 for all users together (10,000 quota units, 1,600 per upload) | More, if requested in the same audit form |
+
+**Rights:** whoever connects a channel is responsible for what it posts. Only post clips of your own
+streams, or of streamers who allow it. Each description credits and links the original stream. Reposting
+other people's streams without permission leads to copyright strikes on your channel, and can get the
+whole app's API access switched off for everyone.
+
 ## How the spike detection works
 
 - Chat is counted in 10-second windows. Each message is worth 1 point, with bonuses

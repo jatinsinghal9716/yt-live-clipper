@@ -267,3 +267,65 @@ def test_emojis_any_kind():
     assert [_emoji_count(t) for t in ["🫠", "👍🏽", "🤦‍♂️", "🇮🇳🇮🇳", ":face-purple-wide-eyes:", "12:30:45"]] == [1, 1, 1, 2, 1, 0]
     assert message_weight("🫠") > message_weight("ok")          # any emoji is a reaction
     assert message_weight("😂😂😂") > message_weight("😂") > message_weight("🫠")  # hype + repeats count more
+
+
+def test_youtube_metadata_limits():
+    from ytclipper.youtube import build_metadata
+    meta = {"suggested_title": "x", "transcript": "No way. He actually did it! " + "word " * 400,
+            "source_title": "Huge <stream> " + "very long title " * 10, "source_channel": "Some Channel",
+            "source": "https://www.youtube.com/watch?v=abc", "stream_time": "1:02:03",
+            "hashtags": ["#shorts", "#live", "#भाई"],
+            "moment": {"sample_chat": ["NOOO 💀", ":face-blue-smiling:"], "top_words": ["भाई"] + [f"w{i}" for i in range(200)]}}
+    md = build_metadata(meta)
+    assert len(md["title"]) <= 100 and md["title"].endswith("#Shorts") and "<" not in md["title"]
+    assert md["title"].startswith("He actually did it!")          # short complete sentence as the hook
+    assert len(md["description"]) <= 5000 and "<" not in md["description"]
+    assert "Some Channel" in md["description"] and "watch?v=abc" in md["description"]  # source credit
+    assert sum(len(t) + 1 + (2 if " " in t else 0) for t in md["tags"]) <= 500
+    assert "भाई" in md["tags"]
+
+
+def test_youtube_upload_records_result(tmp_path, monkeypatch):
+    import json
+
+    from ytclipper import youtube
+
+    (tmp_path / "clip.mp4").write_bytes(b"\0" * 10)
+    (tmp_path / "meta.json").write_text(json.dumps({"suggested_title": "big moment here", "moment": {}}))
+    sent = {}
+
+    class Req:
+        def next_chunk(self, num_retries=0):
+            return None, {"id": "VID123", "status": {"privacyStatus": "public"}}
+
+    class Videos:
+        def insert(self, part, body, media_body):
+            sent.update(body)
+            return Req()
+
+    class Svc:
+        def videos(self):
+            return Videos()
+
+    monkeypatch.setattr(youtube, "_service", lambda creds=None: Svc())
+    url = youtube.upload_clip(tmp_path, {"title": "My <title>"})
+    assert url == "https://youtube.com/shorts/VID123"
+    assert sent["status"]["privacyStatus"] == "public" and sent["snippet"]["title"] == "My title"
+    assert json.loads((tmp_path / "meta.json").read_text())["youtube"]["state"] == "posted"
+
+
+def test_youtube_metadata_skips_unsafe_chat():
+    from ytclipper.youtube import build_metadata, safe_chat
+    assert not safe_chat("free robux at scam.gg") and not safe_chat("join t.me/xyz") and not safe_chat("@someone lol")
+    assert not safe_chat("bc kya hai ye") and safe_chat("NOOOO 💀") and safe_chat("भाई क्या बात है")
+    for dodge in ("scam dot gg", "scam[.]gg", "scam(dot)gg", "scam．gg", "call 98765", "visit scam/gg"):
+        assert not safe_chat(dodge), dodge
+    assert safe_chat("W stream") and safe_chat("LETS GOOO 🔥🔥")
+    meta = {"suggested_title": "visit www.spam.com now", "source_title": "My stream",
+            "hashtags": ["#live", "#fuck"],
+            "moment": {"sample_chat": ["buy at cheap.shop", "W stream", "fuck this"], "top_words": ["chutiya", "clutch"]}}
+    md = build_metadata(meta)
+    text = md["title"] + md["description"] + " ".join(md["tags"])
+    for bad in ("spam.com", "cheap.shop", "fuck", "chutiya"):
+        assert bad not in text.lower(), bad
+    assert '"W stream"' in md["description"] and "clutch" in md["tags"]

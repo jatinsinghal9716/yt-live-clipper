@@ -15,6 +15,8 @@ dependencies = [
   "chat-downloader>=0.2.8",
   "faster-whisper>=1.1",
   "av<19",  # faster-whisper 1.2.1 passes metadata_errors=, removed in PyAV 19
+  "google-api-python-client>=2.100",  # YouTube upload (official Google library)
+  "google-auth-oauthlib>=1.2",  # "Connect YouTube" sign-in
 ]
 
 [project.optional-dependencies]

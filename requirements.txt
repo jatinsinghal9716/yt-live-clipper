@@ -1,0 +1,5 @@
+yt-dlp>=2026.10.26
+streamlink>=8.0
+chat-downloader>=0.2.8
+faster-whisper>=1.1
+av<19

@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "yt-live-clipper"
+version = "1.0.0"
+description = "Free, local auto-clipper for YouTube live streams (chat spikes -> captioned vertical clips)"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+dependencies = [
+  "yt-dlp>=2026.10.26",
+  "streamlink>=8.0",
+  "chat-downloader>=0.2.8",
+  "faster-whisper>=1.1",
+  "av<19",  # faster-whisper 1.2.1 passes metadata_errors=, removed in PyAV 19
+]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[project.scripts]
+ytclip = "ytclipper.cli:main"
+
+[tool.setuptools]
+packages = ["ytclipper"]

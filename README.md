@@ -34,7 +34,9 @@ downloaded once (free, from Hugging Face) the first time captions run.
 
 ## Download
 
-Click the green **Code** button above → **Download ZIP**, then unzip it. Or, with git:
+**[⬇ Download the latest version](https://github.com/jatinsinghal9716/yt-live-clipper/releases/latest/download/yt-live-clipper-v1.0.0.zip)**
+(from [Releases](https://github.com/jatinsinghal9716/yt-live-clipper/releases)), then unzip it. This ZIP includes the
+file that lets you post clips to YouTube. Developers can also clone the code:
 ```bash
 git clone https://github.com/jatinsinghal9716/yt-live-clipper.git
 cd yt-live-clipper
@@ -199,7 +201,7 @@ Uploading uses YouTube's official, free Data API. Google needs one "app" to be r
 5. **Clients → Create client →** type **Desktop app → Create**, then **Download JSON**.
 6. Rename the file to **`client_secret.json`** and put it in this app's folder (next to `README.md`).
    It is git-ignored; to give it to other people, include it in the ZIP you share (for example a
-   GitHub Release), not in the repository.
+   GitHub Release), not in the repository. (The official release ZIP already includes one.)
 
 ### Limits Google sets (all free, but read before relying on it)
 
